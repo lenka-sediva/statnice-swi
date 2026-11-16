@@ -1,7 +1,11 @@
 # Státnice SWI
 
-Interaktivní procvičování ke státnicím z oboru Softwarové inženýrství (Aplikovaná informatika, FIM UHK).
-22 okruhů, 530 otázek a pojmů s vysvětlením.
+Interaktivní procvičování ke státnicím z Aplikované informatiky (FIM UHK). Dva předměty, mezi kterými se přepíná nahoře na stránce:
+
+- **Software** – Softwarové inženýrství: 22 okruhů, 530 otázek a pojmů
+- **Hardware** – Technické a softwarové prostředky: 19 okruhů, 549 otázek a pojmů
+
+Ke každé otázce je vysvětlení.
 
 ## Herní režimy
 
@@ -12,7 +16,7 @@ Interaktivní procvičování ke státnicím z oboru Softwarové inženýrství 
 - **Bleskovka** – 60 sekund, chyba stojí 3 sekundy
 - **Seřaď postup** – fáze, cykly a kroky algoritmů ve správném pořadí
 
-Postup (XP, levely, razítka v indexu, zvládnutí okruhů) se ukládá v prohlížeči.
+Postup (XP, levely, razítka v indexu, zvládnutí okruhů) se ukládá v prohlížeči, zvládnutí se počítá pro každý předmět zvlášť.
 
 ## Spuštění
 
@@ -24,9 +28,10 @@ Zdrojové soubory jsou ve složce `src/`:
 
 | Soubor | Obsah |
 |---|---|
-| `data1.js`–`data3.js` | okruhy: pojmy (`t`), otázky (`q`), pravda/nepravda (`tf`), postupy k seřazení (`ORDERS`) |
+| `data1.js`–`data3.js` | Software: pojmy (`t`), otázky (`q`), pravda/nepravda (`tf`), postupy k seřazení (`ORDERS`) |
+| `hw1.js`–`hw5.js` | Hardware: stejná struktura, postupy v `HW_ORDERS` |
 | `expl.js` | vysvětlení k otázkám |
-| `logic.js` | stav, levely, odznaky, výběr otázek |
+| `logic.js` | předměty, stav, levely, odznaky, výběr otázek |
 | `ui.js` | obrazovky a herní režimy |
 | `share.js` | výzva pro kamarády, synchronizace |
 | `shell.html` | HTML a CSS |

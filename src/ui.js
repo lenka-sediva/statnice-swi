@@ -41,7 +41,8 @@ function renderHUD() {
   $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
   <div class="lvl"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar" title="${L.cur} z ${L.need} XP do dalšího levelu"><i style="width:${L.cur / L.need * 100}%"></i></div></div>
   <span class="stat num"><b>${S.streak}</b> ${S.streak === 1 ? "den" : S.streak >= 2 && S.streak <= 4 ? "dny" : "dní"} v řadě</span>
-  <span class="stat num hide-s"><b>${totalMastery()} %</b> zvládnuto</span>`;
+  <div class="subj" role="tablist" aria-label="Předmět">${SUBJ.map(s => `<button role="tab" aria-selected="${s.id === S.subj}" data-subj="${s.id}" title="${esc(s.full)}">${s.name}<small class="num">${subjMastery(s.id)} %</small></button>`).join("")}</div>`;
+  $("#hud").querySelectorAll("[data-subj]").forEach(b => b.onclick = () => { if (S.subj === b.dataset.subj && $(".hero")) return; S.subj = b.dataset.subj; save(); renderHUD(); go(home); });
   $("#homebtn").onclick = () => go(home);
 }
 const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); return `<div class="stub">${c.n}<small>okruh</small></div><div class="body"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${m}%"></i></div><span class="num">${m} %</span></div></div>${extra}`; };
@@ -50,17 +51,17 @@ const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
 /* ---------- HOME ---------- */
 function home() {
   const d = today(); const dayXP = S.dayDate === d ? S.dayXP : 0; const goal = 100;
-  const weak = CH.slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
+  const weak = subjCh().slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
   const fanPos = [[-13, 26, -150], [-6.5, 8, -75], [0, 0, 0], [6.5, 8, 75], [13, 26, 150]];
   const ids = selIds();
-  const total = CH.reduce((a, c) => a + ALLITEMS[c.id].length, 0);
+  const total = subjCh().reduce((a, c) => a + ALLITEMS[c.id].length, 0);
   const rec = { quiz: S.stats.quizzes + "× odehráno", cards: S.stats.cards + " kartiček", match: S.stats.matches + "× spojeno", speed: "rekord " + S.stats.bestSpeed, order: S.stats.orders + "× seřazeno", boss: S.stats.bosses + "× přesvědčena" };
   const M = [["boss", "Státnice nanečisto", "Vylosuj dva okruhy a přesvědč komisi"], ["quiz", "Kvíz", "Deset otázek, série zvyšuje body"], ["cards", "Kartičky", "Co neumíš, uvidíš příště dřív"], ["match", "Přiřazovačka", "Spoj šest pojmů s definicemi"], ["speed", "Bleskovka", "60 sekund, chyba stojí 3 sekundy"], ["order", "Seřaď postup", "Fáze, cykly a kroky algoritmů"]];
   app.innerHTML = `
   <section class="hero">
     <div>
-      <h1>Státnice ze Softwarového inženýrství</h1>
-      <p class="lead">22 okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
+      <h1${S.subj === "hw" ? ' style="font-size:clamp(36px,5vw,62px)"' : ""}>${S.subj === "hw" ? "Státnice z Technických a softwarových prostředků" : "Státnice ze Softwarového inženýrství"}</h1>
+      <p class="lead">${subjCh().length} okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
       <div class="acts"><button class="btn-main" data-mode="boss">Vylosovat okruhy</button><button class="btn-ghost" data-mode="quiz">Rychlý kvíz</button></div>
       <div class="today"><div class="small"><b class="num">${Math.min(dayXP, goal)} / ${goal} XP</b> <span class="mute">dnešní cíl${dayXP >= goal ? " splněn" : ""}</span></div><div class="line"><i style="width:${Math.min(dayXP / goal, 1) * 100}%"></i></div></div>
     </div>
@@ -70,12 +71,12 @@ function home() {
     </div>
   </section>
   <section>
-    <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${S.sel.length ? `Hraješ z ${S.sel.length} ${plural(S.sel.length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
+    <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${curSel().length ? `Hraješ z ${curSel().length} ${plural(curSel().length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
     <div class="modes">${M.map(m => `<button class="mode" data-mode="${m[0]}">${icon(m[0])}<span><b>${m[1]}</b><span class="d">${m[2]}</span></span><span class="rec num">${rec[m[0]]}</span></button>`).join("")}</div>
   </section>
   <section>
     <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
-    <div class="grid-tk">${CH.map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
+    <div class="grid-tk">${subjCh().map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
   </section>
   <section class="twocol">
     <div><div class="sec-head"><h2>Index</h2><span class="small mute num">${Object.keys(S.ach).length} z ${ACH.length} razítek</span></div>
@@ -85,7 +86,7 @@ function home() {
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => go(MODES[b.dataset.mode].bind(null, ids)));
   app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
   app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(); scrollTo(0, y); });
-  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = []; save(); const y = scrollY; home(); scrollTo(0, y); };
+  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(); scrollTo(0, y); };
   renderLB();
 }
 
@@ -234,7 +235,7 @@ function speed(ids, back = home) {
 
 /* ---------- ORDER ---------- */
 function order(ids, back = home) {
-  let list = ORDERS.filter(o => ids.includes(o[1])); if (!list.length) list = ORDERS;
+  const OR = subj().orders; let list = OR.filter(o => ids.includes(o[1])); if (!list.length) list = OR;
   const [name, ch, steps] = pick(list, 1)[0]; const sh = shuffle(steps.map((s, i) => ({ s, i })));
   let built = [], tries = 0;
   function render() {
@@ -257,14 +258,14 @@ function order(ids, back = home) {
 
 /* ---------- BOSS ---------- */
 function boss(ids, back = home) {
-  const drawn = pick(ids.length >= 2 ? ids : CH.map(c => c.id), 2);
+  const drawn = pick(ids.length >= 2 ? ids : subjCh().map(c => c.id), 2);
   app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Zpět</button></div><h1 style="font-size:clamp(40px,7vw,64px)">Losování</h1>
   <p class="mute" style="margin-top:10px;max-width:52ch">Komise ti položí 12 otázek z vylosovaných okruhů. Každá správná odpověď ji přesvědčí o kus víc. Máš tři pokusy na chybu.</p>
   <div class="draw"><div class="tk" id="d1"></div><div class="tk" id="d2"></div></div><button class="btn-main" id="go" disabled>Předstoupit před komisi</button></div>`;
   $(".back").onclick = () => go(back);
   let n = 0; const fake = c => ticket(c);
   const sp = setInterval(() => {
-    const a = pick(CH, 2); $("#d1").innerHTML = fake(a[0]); $("#d2").innerHTML = fake(a[1]);
+    const a = pick(subjCh(), 2); $("#d1").innerHTML = fake(a[0]); $("#d2").innerHTML = fake(a[1]);
     if (++n > 12) { clearInterval(sp); [["#d1", drawn[0]], ["#d2", drawn[1]]].forEach(([s, id], k) => { const el = $(s); el.innerHTML = ticket(CHMAP[id]); el.style.animationDelay = k * 140 + "ms"; el.classList.add("spin"); }); $("#go").disabled = false; $("#go").focus({ preventScroll: true }); }
   }, 85);
   timers.push(sp);

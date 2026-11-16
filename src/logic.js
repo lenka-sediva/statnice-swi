@@ -1,4 +1,9 @@
-const CH = [...DATA1, ...DATA2, ...DATA3];
+const SUBJ = [
+  { id: "sw", name: "Software", full: "Softwarové inženýrství", ch: [...DATA1, ...DATA2, ...DATA3], orders: ORDERS },
+  { id: "hw", name: "Hardware", full: "Technické a softwarové prostředky", ch: [...HW1, ...HW2, ...HW3, ...HW4, ...HW5], orders: HW_ORDERS },
+];
+SUBJ.forEach(s => s.ch.forEach(c => c.subj = s.id));
+const CH = SUBJ.flatMap(s => s.ch);
 const CHMAP = Object.fromEntries(CH.map(c => [c.id, c]));
 const $ = (s, el = document) => el.querySelector(s);
 const app = $("#app");
@@ -9,7 +14,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /* ---------- STATE ---------- */
 const KEY = "statnice-se-v1";
-const DEF = { xp: 0, done: {}, box: {}, ach: {}, stats: { quizzes: 0, bestSpeed: 0, bosses: 0, cards: 0, bestCombo: 0, perfect: 0, matches: 0, orders: 0 }, streak: 0, lastDay: "", dayXP: 0, dayDate: "", nick: "", sel: [] };
+const DEF = { xp: 0, done: {}, box: {}, ach: {}, stats: { quizzes: 0, bestSpeed: 0, bosses: 0, cards: 0, bestCombo: 0, perfect: 0, matches: 0, orders: 0 }, streak: 0, lastDay: "", dayXP: 0, dayDate: "", nick: "", sel: [], subj: "sw" };
 let S = structuredClone(DEF);
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(structuredClone(DEF), JSON.parse(r)); S.stats = Object.assign(structuredClone(DEF.stats), S.stats); } catch (e) {}
 let DB = null, UID = null, saveTimer = null;
@@ -42,10 +47,14 @@ function items(ch) {
 }
 const ALLITEMS = Object.fromEntries(CH.map(c => [c.id, items(c)]));
 function mastery(id) { const it = ALLITEMS[id]; return it.filter(x => S.done[x.id]).length / it.length; }
+function subj() { return SUBJ.find(s => s.id === S.subj) || SUBJ[0]; }
+function subjCh() { return subj().ch; }
+function subjMastery(sid) { let a = 0, b = 0; SUBJ.find(s => s.id === sid).ch.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
 function totalMastery() { let a = 0, b = 0; CH.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
 function poolFor(ids) { return ids.flatMap(id => ALLITEMS[id]); }
 function weighted(pool, n) { const nd = shuffle(pool.filter(x => !S.done[x.id])), d = shuffle(pool.filter(x => S.done[x.id])); return shuffle([...nd.slice(0, Math.ceil(n * 0.7)), ...d, ...nd.slice(Math.ceil(n * 0.7))].slice(0, n)); }
-function selIds() { return S.sel.length ? S.sel : CH.map(c => c.id); }
+function curSel() { return S.sel.filter(id => CHMAP[id] && CHMAP[id].subj === subj().id); }
+function selIds() { const s = curSel(); return s.length ? s : subjCh().map(c => c.id); }
 
 /* ---------- XP / ACHIEVEMENTS ---------- */
 const ACH = [
@@ -60,10 +69,10 @@ const ACH = [
   ["speed25", "25", "Turbo mozek", "Bleskovka 25+ bodů"],
   ["boss", "Bc.", "Před komisí", "Přesvědč komisi"],
   ["boss3", "3×", "Komise se bojí", "Přesvědč komisi třikrát"],
-  ["allch", "22", "Průzkumnice", "Odpověz v každém okruhu"],
+  ["allch", "vše", "Průzkumnice", "Odpověz v každém okruhu předmětu"],
   ["master1", "100", "Expertka", "Jeden okruh na 100 %"],
-  ["master50", "50 %", "Půlka hotová", "Celkem zvládnuto 50 %"],
-  ["master100", "100 %", "Připravená", "Celkem zvládnuto 100 %"],
+  ["master50", "50 %", "Půlka hotová", "Předmět zvládnutý na 50 %"],
+  ["master100", "100 %", "Připravená", "Předmět zvládnutý na 100 %"],
   ["lvl5", "L5", "Level 5", "Dosáhni levelu 5"],
   ["lvl10", "L10", "Level 10", "Dosáhni levelu 10"],
   ["streak3", "3 d", "Tři dny v kuse", "Uč se 3 dny po sobě"],
@@ -72,9 +81,9 @@ const ACH = [
 function unlock(id) { if (S.ach[id]) return; S.ach[id] = Date.now(); const a = ACH.find(x => x[0] === id); slam(stampSVG(a, true), "Nové razítko: " + a[2]); save(); }
 function checkAch() {
   if (S.stats.cards >= 50) unlock("cards50");
-  if (CH.every(c => ALLITEMS[c.id].some(x => S.done[x.id]))) unlock("allch");
+  if (SUBJ.some(s => s.ch.every(c => ALLITEMS[c.id].some(x => S.done[x.id])))) unlock("allch");
   if (CH.some(c => mastery(c.id) === 1)) unlock("master1");
-  const tm = totalMastery(); if (tm >= 50) unlock("master50"); if (tm >= 100) unlock("master100");
+  const tm = Math.max(...SUBJ.map(s => subjMastery(s.id))); if (tm >= 50) unlock("master50"); if (tm >= 100) unlock("master100");
   const L = lvl(S.xp).n; if (L >= 5) unlock("lvl5"); if (L >= 10) unlock("lvl10");
   if (S.streak >= 3) unlock("streak3"); if (S.streak >= 7) unlock("streak7");
 }

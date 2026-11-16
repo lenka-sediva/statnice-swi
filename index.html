@@ -58,6 +58,11 @@ header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper
 .lvl b{font:900 15px var(--display);font-stretch:90%;background:var(--ink);color:var(--sheet);border-radius:6px;padding:3px 8px}
 .xpbar{width:140px;height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
 .xpbar i{display:block;height:100%;background:var(--stamp);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.subj{display:flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden}
+.subj button{border:0;border-radius:0;padding:6px 12px;font-size:14px;display:flex;gap:6px;align-items:baseline;background:var(--sheet)}
+.subj button small{font-size:12px;color:var(--mute);font-weight:400}
+.subj button[aria-selected="true"]{background:var(--ink);color:var(--sheet)}
+.subj button[aria-selected="true"] small{color:inherit;opacity:.75}
 .stat{font-size:14px;color:var(--mute);white-space:nowrap}.stat b{color:var(--ink)}
 @media(max-width:720px){.hud{gap:12px;flex-wrap:wrap}.xpbar{width:70px}.hide-s{display:none}}
 
@@ -1150,9 +1155,726 @@ const ORDERS = [
 ["Složitost od nejpomalejší","sort",["O(n²) – Bubble sort","O(n log n) – Merge sort","O(n) – lineární průchod","O(log n) – binární vyhledávání","O(1) – přístup do pole"]],
 ];
 
+const HW1 = [
+{id:"h-zpp",n:1,title:"Základní principy počítačů",icon:"Ω",
+t:[
+["Ohmův zákon","U = R · I, tedy R = U / I"],
+["Odpor vodiče","R = ρ · L / S (měrný odpor × délka / průřez)"],
+["Elektrický výkon","P = U · I = R · I² = U² / R, jednotka watt"],
+["Elektrická energie","W = U · I · t; 1 Wh = 3600 Ws (J)"],
+["Proudová hustota","J = I / S – proud na jednotku plochy průřezu"],
+["Intenzita elektrického pole","E = U / L, jednotka V/m"],
+["1. Kirchhoffův zákon","Uzlový: součet proudů v uzlu je roven nule"],
+["2. Kirchhoffův zákon","Smyčkový: součet napětí ve smyčce je roven nule"],
+["Kondenzátor","Ukládá energii v elektrickém poli, nevede stejnosměrný proud"],
+["Cívka","Ukládá energii v magnetickém poli"],
+["Dioda","Propouští proud jen jedním směrem"],
+["Tranzistor","Polovodičová součástka – zesilovač nebo spínač (bipolární, MOSFET)"],
+["De Morganovy zákony","¬(A ∧ B) = ¬A ∨ ¬B a ¬(A ∨ B) = ¬A ∧ ¬B"],
+["ÚDNF","Součet součinů – v pravdivostní tabulce řádky s výstupem 1"],
+["ÚKNF","Součin součtů – v pravdivostní tabulce řádky s výstupem 0"],
+["Karnaughova mapa","Grafická minimalizace logické funkce – skupiny 1, 2, 4, 8 políček s jedničkami"],
+],
+q:[
+["Jak se počítá výsledný odpor rezistorů zapojených sériově?","R = R1 + R2 + … + Rn",["1/R = 1/R1 + 1/R2 + …","R = R1 · R2","R = (R1 + R2) / 2"],"V sérii prochází všemi rezistory stejný proud a odpory se sčítají."],
+["Dva rezistory 6 Ω zapojené paralelně mají výsledný odpor…","3 Ω",["12 Ω","6 Ω","36 Ω"],"1/R = 1/6 + 1/6 = 2/6, tedy R = 3 Ω. Paralelně je výsledný odpor vždy menší než nejmenší z nich."],
+["Jak se sčítají kondenzátory zapojené paralelně?","C = C1 + C2 + … + Cn",["1/C = 1/C1 + 1/C2 + …","C = C1 · C2","Nesčítají se"],"U kondenzátorů je to obráceně než u rezistorů: paralelně se kapacity sčítají, sériově převrácené hodnoty."],
+["Na rezistoru 10 Ω je napětí 5 V. Jaký jím teče proud?","0,5 A",["2 A","50 A","15 A"],"Z Ohmova zákona I = U / R = 5 / 10 = 0,5 A."],
+["Spotřebič má 230 V a odebírá 2 A. Jaký má výkon?","460 W",["115 W","232 W","920 W"],"P = U · I = 230 · 2 = 460 W."],
+["Jak se mění odpor kovů s rostoucí teplotou?","Roste",["Klesá","Nemění se","Klesne na nulu"],"U kovů odpor s teplotou roste, u polovodičů klesá. Supravodivost je ztráta odporu při velmi nízké teplotě."],
+["Vývody unipolárního tranzistoru (MOSFET) jsou…","Source, gate, drain",["Emitor, báze, kolektor","Anoda, katoda, mřížka","Vstup, výstup, zem"],"Emitor, báze a kolektor má bipolární tranzistor."],
+["Kolik je binárně 1111 1111 hexadecimálně?","FF",["F0","1F","EE"],"Každá čtveřice bitů odpovídá jedné hexadecimální číslici: 1111 = F."],
+["Hodnota hexadecimálního A v desítkové soustavě?","10",["11","16","1"],"Hexadecimální soustava pokračuje po 9 písmeny A = 10 až F = 15."],
+["Čemu se podle De Morgana rovná ¬(A ∨ B)?","¬A ∧ ¬B",["¬A ∨ ¬B","A ∧ B","¬(A ∧ B)"],"Negace součtu je součin negací."],
+["Které řádky pravdivostní tabulky bereš pro ÚDNF?","Řádky s výstupem 1",["Řádky s výstupem 0","Všechny řádky","Jen první řádek"],"ÚDNF je součet mintermů, tedy řádků, kde funkce dává 1."],
+["Jak velké skupiny se v Karnaughově mapě slučují?","1, 2, 4, 8 … (mocniny dvou)",["Libovolně velké","Jen dvojice","3, 6, 9 …"],"Sloučit lze jen obdélníkové skupiny o velikosti mocniny dvou – pak z výrazu vypadnou proměnné, které se v nich mění."],
+],
+tf:[
+["Kondenzátor propouští stejnosměrný proud.",false,"Kondenzátor stejnosměrný proud nevede, ukládá energii v elektrickém poli."],
+["1 Wh odpovídá 3600 J.",true,"1 Wh = 1 W · 3600 s = 3600 Ws = 3600 J."],
+["Dioda je pasivní součástka.",false,"Dioda je aktivní prvek. Pasivní jsou rezistor, kondenzátor a cívka."],
+["Paralelně zapojené rezistory mají menší výsledný odpor než nejmenší z nich.",true,"Každá další větev přidá cestu pro proud, takže celkový odpor klesá."],
+["Oktalová soustava má základ 16.",false,"Oktalová má základ 8, hexadecimální 16."],
+]},
+{id:"h-mp",n:2,title:"Základy mikroprocesorů",icon:"⌗",
+t:[
+["Von Neumannova architektura","Program a data sdílejí jednu paměť a sběrnici – úzké hrdlo"],
+["Harvardská architektura","Oddělená paměť pro program a data – paralelní přístup"],
+["ALU","Aritmeticko-logická jednotka – provádí výpočty"],
+["Řadič","Načítá instrukce a řídí ostatní části procesoru"],
+["Registry","Nejrychlejší paměť přímo v CPU pro dočasná data"],
+["CISC","Velká sada složitých instrukcí – Intel x86"],
+["RISC","Jednoduché rychlé instrukce, často 1 instrukce = 1 takt – ARM"],
+["Datová sběrnice","Přenáší data"],
+["Adresová sběrnice","Určuje adresy paměťových míst"],
+["Řídicí sběrnice","Přenáší řídicí signály (čtení / zápis)"],
+["DMA","Přímý přístup periferie do paměti bez zatěžování procesoru"],
+["Přerušení","Signál, kterým zařízení žádá procesor o pozornost"],
+["Vektor přerušení","Ukazuje na místo v paměti s obslužnou rutinou přerušení"],
+],
+q:[
+["Co je hlavní nevýhoda von Neumannovy architektury?","Úzké hrdlo – instrukce i data jdou přes jednu sběrnici",["Nelze v ní uložit program","Potřebuje dvě paměti","Neumí přerušení"],"Instrukce i data se čtou ze stejné paměti stejnou sběrnicí, takže se navzájem zdržují (von Neumann bottleneck)."],
+["Který procesor je typicky RISC?","ARM",["Intel x86","AMD x86-64","Intel 8086"],"ARM je RISC, x86 od Intelu i AMD je CISC."],
+["Proč se RISC hodí do mobilů?","Má menší spotřebu",["Má víc instrukcí","Je vždy rychlejší","Nepotřebuje paměť"],"Jednoduché instrukce znamenají jednodušší obvody a menší spotřebu."],
+["Správné pořadí instrukčního cyklu?","Fetch → Decode → Execute → Writeback",["Decode → Fetch → Execute → Writeback","Execute → Fetch → Decode → Writeback","Fetch → Execute → Decode → Writeback"],"Instrukci nejdřív načte, pak dekóduje, provede a výsledek zapíše."],
+["Kdo v instrukčním cyklu provádí operaci (Execute)?","ALU",["Řadič","Cache","Sběrnice"],"Řadič instrukci načte a dekóduje, výpočet provede ALU."],
+["Na čem závisí výkon sběrnice?","Na šířce (v bitech) a frekvenci",["Jen na délce kabelu","Na počtu jader","Na velikosti disku"],"Propustnost = šířka × frekvence."],
+["Co dělá procesor při DMA přenosu?","Jen přenos inicializuje a pak dělá jinou práci",["Kopíruje každý bajt sám","Čeká, až přenos skončí","Vypne se"],"Data přenáší řadič DMA přímo mezi periferií a pamětí."],
+["Co procesor udělá jako první, když přijde přerušení?","Uloží kontext rozpracované činnosti",["Restartuje se","Smaže registry","Ignoruje ho"],"Uloží kontext, provede obslužnou rutinu a pak se k původnímu programu vrátí."],
+["Kdy vznikl první mikroprocesor (Intel 4004)?","1971",["1946","1981","1965"],"Intel 4004 z roku 1971 je považován za milník – první mikroprocesor."],
+],
+tf:[
+["Harvardská architektura má oddělenou paměť pro data a program.",true,"Díky tomu může číst instrukci a data současně."],
+["Klávesnice vyvolává softwarové přerušení.",false,"Klávesnice a myš vyvolávají hardwarové přerušení. Softwarové vzniká z chyb nebo požadavků OS."],
+["CISC procesory se uplatňují v PC a serverech.",true,"CISC (x86) dává vyšší výkon v komplexních aplikacích."],
+["Cache je paměť na rozhraní mezi RAM a CPU.",true,"Urychluje přístup k často používaným datům."],
+]},
+{id:"h-arch",n:3,title:"Základy architektury počítačů",icon:"▤",
+t:[
+["Základní deska","Propojuje všechny komponenty – sběrnice, čipová sada, sloty, BIOS/UEFI"],
+["North Bridge","Propojuje procesor s RAM a grafickou kartou"],
+["South Bridge","Komunikace s pomalejšími zařízeními – disky, USB, zvuk, síť"],
+["FSB","Front Side Bus – komunikace mezi CPU a North Bridgem"],
+["Čipová sada","Komunikační uzel; určuje, jaké komponenty lze použít; dnes často v CPU"],
+["Mikroarchitektura","Vnitřní organizace procesoru – jak zpracovává instrukce (pipeline, cache…)"],
+["Pipeline","Zpracování instrukcí rozdělené do fází, které běží souběžně"],
+["Out-of-order execution","Provádění instrukcí mimo pořadí – přeskočí čekající"],
+["Branch prediction","Předpovídání větvení programu"],
+["Superskalární zpracování","Více instrukcí za jeden takt"],
+["Hyper-Threading / SMT","Více vláken na jedno jádro"],
+["AVX, SSE","SIMD instrukce – jedna instrukce nad více daty"],
+["TDP","Tepelný výkon / spotřeba – určuje potřebné chlazení"],
+["PCIe","Sériová sběrnice s linkami x1, x4, x8, x16 – GPU, NVMe SSD"],
+["M.2 (NVMe)","Rozhraní pro moderní SSD, rychlejší než SATA"],
+["Thunderbolt","Vysokorychlostní přenos dat, videa a napájení, dnes přes USB-C"],
+],
+q:[
+["Co propojuje North Bridge?","Procesor s RAM a grafickou kartou",["Procesor s USB a zvukem","Disky se sítí","Zdroj se základní deskou"],"North Bridge obsluhuje rychlé komponenty, South Bridge ty pomalejší."],
+["Co zajišťuje South Bridge?","Komunikaci s pomalejšími zařízeními – disky, USB, zvuk, síť",["Připojení RAM","Připojení grafické karty","Napájení"],"Rychlé věci (RAM, GPU) jdou přes North Bridge."],
+["Co přeměňuje napájecí zdroj?","Střídavý proud ze zásuvky na stejnosměrný",["Stejnosměrný na střídavý","Napětí na frekvenci","Data na signál"],"Komponenty počítače potřebují stejnosměrné napětí."],
+["Která technologie umožňuje víc vláken na jedno jádro?","Hyper-Threading / SMT",["Turbo Boost","Branch prediction","AVX"],"SMT (u AMD) a Hyper-Threading (Intel) střídají více vláken na jednom jádru."],
+["Co je typické pro mikroarchitekturu NetBurst (Pentium 4)?","Dlouhá pipeline a nízká efektivita",["SMT a vysoká efektivita","Sdílená L3 cache","Integrovaná GPU"],"Dlouhá pipeline dovolila vysoké takty, ale při chybné predikci se ztrácelo hodně práce."],
+["Jak PCIe přenáší data?","Sériově po linkách x1, x4, x8, x16",["Paralelně po 32 vodičích","Jen bezdrátově","Přes SATA"],"Na rozdíl od staršího paralelního PCI je PCIe sériové."],
+["Které rozhraní je analogové?","VGA",["HDMI","DisplayPort","DVI-D"],"VGA přenáší analogový signál, HDMI a DisplayPort digitální."],
+["Kolik zařízení lze připojit na USB?","Až 127",["Až 16","Až 255","Jen 4"],"USB má stromovou topologii s až 127 zařízeními."],
+["Jaké napětí dává USB?","+5 V",["+12 V","+3,3 V","230 V"],"Standardní USB napájení je 5 V."],
+["Konektor USB, u kterého nezáleží na orientaci?","USB-C",["USB-A","USB-B","Micro USB"],"USB-C je symetrický."],
+],
+tf:[
+["Mikroarchitektura je totéž co instrukční sada (např. x86).",false,"Instrukční sada říká CO procesor umí, mikroarchitektura JAK to uvnitř provádí."],
+["USB podporuje hotswap (připojení za chodu).",true,"Plug & Play a hotswap patří k hlavním výhodám USB."],
+["Dnes bývá čipová sada často integrovaná přímo v procesoru.",true,"Funkce North Bridge se přesunuly do CPU."],
+["Turbo Boost trvale zvýší takt procesoru.",false,"Turbo Boost zvyšuje výkon jen krátkodobě, dokud to dovolí teplota a spotřeba."],
+]},
+{id:"h-mem",n:4,title:"Paměti počítačů",icon:"▥",
+t:[
+["Primární paměť","Pro bezprostřední zpracování – registry, cache, RAM, ROM"],
+["Sekundární paměť","Dlouhodobé uložení – HDD, SSD, CD, flash"],
+["Terciární paměť","Archivace a zálohy – páskové jednotky"],
+["Přístupová doba","Čas potřebný k získání dat"],
+["Propustnost","Množství dat přenesené za jednotku času"],
+["Časová lokalita","K nedávno použitým datům se brzy přistoupí znovu"],
+["Prostorová lokalita","Brzy se použijí data poblíž právě používaných"],
+["PROM","Jednorázově programovatelná ROM"],
+["EPROM","Přepisovatelná, mazání UV zářením"],
+["EEPROM","Přepisovatelná elektrickými impulsy"],
+["DRAM","Levná, pomalejší, vyžaduje obnovování"],
+["SRAM","Rychlá, dražší, bez obnovování – cache"],
+["DIMM","Paměťový modul s DRAM čipy; DDR4 = 288 pinů"],
+["Stopa","Kružnice na povrchu disku"],
+["Sektor","Výseč stopy – nejmenší adresovatelná jednotka disku"],
+["Cluster","Nejmenší logická jednotka přístupná OS, z několika sektorů"],
+["MBR","Master Boot Record – tabulka oddílů a zavaděč v sektoru 0"],
+],
+q:[
+["Správné pořadí hierarchie pamětí od nejrychlejší?","Registry → cache → RAM → SSD/HDD → pásky",["Cache → registry → RAM → HDD → pásky","RAM → cache → registry → HDD → pásky","Registry → RAM → cache → pásky → HDD"],"Čím blíž procesoru, tím rychlejší, menší a dražší za bit."],
+["Která RAM se používá pro cache?","SRAM",["DRAM","EPROM","Flash"],"SRAM je rychlá a nepotřebuje obnovování, ale je drahá – proto se hodí pro malou rychlou cache."],
+["Z čeho jsou tvořeny registry?","Z klopných obvodů typu D",["Z kondenzátorů","Z magnetických domén","Z NAND buněk"],"Klopný obvod D uchová jeden bit, dokud má napájení."],
+["Která cache je sdílená pro celý procesor?","L3",["L1","L2 vždy","Žádná"],"L1 je v každém jádře, L3 sdílí všechna jádra."],
+["Čím se maže EPROM?","UV zářením",["Elektrickým impulsem","Magnetem","Teplem"],"EEPROM se maže elektricky, EPROM ultrafialovým světlem přes okénko."],
+["Co je nejmenší adresovatelná jednotka disku?","Sektor",["Cluster","Stopa","Partition"],"Cluster je nejmenší jednotka pro OS a skládá se z několika sektorů."],
+["Kde je uložen MBR?","V sektoru 0",["Na konci disku","V RAM","V BIOSu"],"MBR je hned v prvním sektoru a obsahuje tabulku oddílů a zavaděč."],
+["Kolik pinů má modul DDR4 DIMM?","288",["240","184","168"],"DDR3 DIMM má 240 pinů, DDR4 288."],
+["Jak se čte magnetooptický disk?","Pomocí Kerrova jevu",["Laserem přes pity a landy","Magnetickou hlavou","Elektrickým nábojem"],"Zápis mění magnetizaci zahřátého místa, čtení využívá Kerrův jev."],
+["Kapacita DVD?","4,7 GB",["700 MB","25 GB","1,44 MB"],"CD má 700 MB, DVD 4,7 GB a Blu-ray 25 GB a víc."],
+],
+tf:[
+["DRAM musí být pravidelně obnovována.",true,"Náboj v kondenzátorech DRAM uniká, proto se musí obnovovat."],
+["RAM uchová data i po vypnutí.",false,"RAM je netrvalá. Data po vypnutí uchová ROM nebo flash."],
+["Magnetická páska má sekvenční přístup.",true,"K datům se musí dojít převinutím, na rozdíl od přímého přístupu RAM nebo HDD."],
+["Flash paměti mají pohyblivé části.",false,"Flash (NAND) nemá pohyblivé části, proto je odolnější a rychlejší."],
+]},
+];
+
+const HW2 = [
+{id:"h-os",n:5,title:"Principy operačních systémů",icon:"⚙",
+t:[
+["Monolitické jádro","Všechny služby OS v jednom bloku v jádrovém režimu – rychlé, méně modulární (Linux)"],
+["Mikrojádro","Služby v uživatelském prostoru, jádro jen komunikace a plánování – modulární, bezpečné (Minix, QNX)"],
+["Hybridní jádro","Kombinace monolitu a mikrojádra (Windows)"],
+["Proces","Běžící instance programu s vlastním adresním prostorem"],
+["Vlákno","„Lehký proces“ – část procesu s vlastním ukazatelem programu, registry a zásobníkem"],
+["Dispečer","Přepíná kontext a předá CPU vybranému procesu"],
+["FCFS","První přišel, první jde – hrozí convoy effect"],
+["SJF","Nejkratší úloha první – nejnižší průměrné čekání, hrozí vyhladovění dlouhých"],
+["Round Robin","Každý proces dostane CPU na časové kvantum – interaktivní systémy"],
+["Vyhladovění (starvation)","Nízkoprioritní proces se nikdy nedostane na řadu"],
+["Deadlock","Procesy drží prostředky a navzájem na sebe čekají"],
+["Interní fragmentace","Nevyužité místo UVNITŘ přiděleného bloku (statické sekce)"],
+["Externí fragmentace","Volné místo rozdrobené MEZI bloky (dynamické přidělování)"],
+["Kompakce","Přesunutí procesů k sobě, aby se díry spojily – výpočetně náročné"],
+["Stránkování","Paměť i procesy na stejně velké stránky – odstraní externí fragmentaci (MMU, TLB)"],
+["Demand paging","Stránky se načítají až při page faultu – riziko thrashingu"],
+["Segmentace","Logické dělení paměti na kód, data, zásobník"],
+["Semafor","Synchronizační nástroj s operacemi P a V"],
+["Mutex","Zámek zajišťující vzájemné vyloučení"],
+],
+q:[
+["Které jádro má Linux?","Monolitické",["Mikrojádro","Hybridní","Exojádro"],"Linux má všechny základní služby v jednom bloku v jádrovém režimu. Windows má hybridní jádro, Minix a QNX mikrojádro."],
+["Hlavní výhoda mikrojádra?","Modularita a bezpečnost",["Nejvyšší rychlost","Žádná režie komunikace","Jednodušší ovladače v jádře"],"Pád ovladače v uživatelském prostoru neshodí celé jádro. Platí se za to režií komunikace mezi komponentami."],
+["Ve kterém stavu proces čeká na I/O?","Čekající (waiting)",["Připravený (ready)","Běžící (running)","Ukončený"],"Připravený proces čeká jen na přidělení CPU, čekající na událost nebo I/O."],
+["Čím trpí FCFS?","Convoy effect – dlouhý proces zdrží krátké",["Vyhladověním dlouhých procesů","Příliš častým přepínáním","Potřebou znát délku úlohy"],"Procesy běží v pořadí příchodu, takže jedna dlouhá úloha zdrží všechny za ní."],
+["Který algoritmus má nejnižší průměrnou dobu čekání?","SJF",["FCFS","Round Robin","Prioritní"],"SJF pouští nejkratší úlohy první. Musí ale znát délku úlohy předem a dlouhé úlohy mohou vyhladovět."],
+["Co hrozí u Round Robin při příliš malém kvantu?","Velká režie častého přepínání",["Vyhladovění","Convoy effect","Deadlock"],"Malé kvantum = moc přepínání kontextu, velké kvantum = dlouhé čekání."],
+["Hotel jen se čtyřlůžkovými pokoji a jeden host. Jaká je to fragmentace?","Interní",["Externí","Žádná","Segmentová"],"Prázdné postele jsou UVNITŘ přiděleného pokoje (bloku)."],
+["Co odstraní externí fragmentaci?","Stránkování",["Segmentace","Statické sekce","Souvislá oblast"],"Stránky mají stejnou velikost, takže každá volná stránka se dá použít. Segmentace externí fragmentací naopak trpí."],
+["Kolik semaforů používá řešení výrobce × spotřebitel?","3 (mutex, empty, full)",["1","2","4"],"Mutex hlídá přístup k bufferu, empty počet volných míst a full počet položek."],
+["Čtenář × zapisovatel: kdo smí přistupovat současně?","Více čtenářů",["Více zapisovatelů","Čtenář a zapisovatel","Nikdo"],"Čtení se navzájem neruší, zapisovatel ale musí být sám."],
+["Co nastane při thrashingu?","Systém víc přesouvá stránky, než počítá",["Procesor se přehřeje","Disk se zaplní","Proces skončí"],"Při nedostatku paměti se stránky neustále vyměňují a výkon prudce klesne."],
+],
+tf:[
+["Vlákno má vlastní adresní prostor oddělený od procesu.",false,"Vlákna sdílí adresní prostor svého procesu, vlastní mají jen registry, zásobník a ukazatel programu."],
+["Prioritní plánování může vést k vyhladovění.",true,"Proces s nízkou prioritou se nemusí nikdy dostat na řadu."],
+["Stránkování potřebuje hardwarovou podporu MMU a TLB.",true,"MMU překládá virtuální adresy na fyzické, TLB je cache tohoto překladu."],
+["Windows i Linux používají plánování s více frontami.",true,"Multilevel queue rozděluje procesy na interaktivní, dávkové a systémové."],
+]},
+{id:"h-fs",n:6,title:"Souborové systémy a logická struktura dat",icon:"🗀",
+t:[
+["Kontinuální alokace","Soubor v jednom souvislém bloku – rychlé, ale fragmentace"],
+["Propojená alokace","Bloky souboru propojené ukazateli"],
+["Indexovaná alokace","Tabulka ukazuje, kde jsou části souboru (NTFS)"],
+["Žurnálování","Změny se nejdřív zapíšou do žurnálu – ochrana při výpadku"],
+["FAT32","Jednoduchý FS, limit 4 GB na soubor"],
+["NTFS","Windows FS se žurnálem, ACL a šifrováním EFS"],
+["ext4","Nativní stabilní a výkonný FS Linuxu"],
+["exFAT","Multiplatformní FS pro flash disky"],
+["APFS","FS macOS optimalizovaný pro SSD"],
+["ACL","Access Control List – detailní řízení přístupu"],
+["ADS","Alternativní datové proudy NTFS – další data připojená k souboru"],
+["mmap","Mapování souboru do virtuální paměti – přístup jako k RAM"],
+["VFS","Virtual File System – jednotné rozhraní nad různými FS v Linuxu"],
+["inode","Metadata souboru – velikost, práva, časy"],
+["dentry","Vazba mezi názvem souboru a jeho inode"],
+["super_block","Informace o připojeném souborovém systému"],
+["Vynucené zamykání","OS zámky vynucuje – silná ochrana, méně flexibilní"],
+["Nevynucené zamykání","Zámky jen doporučené, aplikace je musí respektovat – flock, fcntl"],
+],
+q:[
+["Jaký limit velikosti souboru má FAT32?","4 GB",["2 TB","16 EB","700 MB"],"FAT32 ukládá velikost souboru do 32 bitů, proto max. 4 GB."],
+["Který FS se hodí na flash disk sdílený mezi Windows a macOS?","exFAT",["NTFS","ext4","APFS"],"exFAT umí oba systémy číst i zapisovat a nemá limit 4 GB."],
+["Co zajišťuje žurnálování?","Ochranu proti poškození dat při výpadku",["Kompresi souborů","Šifrování","Rychlejší čtení"],"Změny se nejdřív zapíšou do žurnálu, takže se po výpadku dají dokončit nebo vrátit."],
+["Který Linuxový atribut zakáže soubor měnit i mazat?","Immutable",["Append-only","Read-only","Hidden"],"Append-only dovolí jen přidávat data na konec."],
+["Které datové struktuře VFS odpovídají metadata souboru?","inode",["dentry","super_block","file"],"dentry spojuje jméno s inode, file drží stav otevřeného souboru."],
+["Co je typické pro sekvenční přístup?","Data se čtou postupně od začátku – logy, streamy",["Skok na libovolný offset","Indexy","Databáze"],"Přímý přístup používá offset a hodí se pro databáze a indexy."],
+["Kterou funkcí zamkneš jen část souboru?","fcntl()",["flock()","open()","chmod()"],"flock() zamyká celý soubor, fcntl() umí zamknout i část."],
+["Co musí mít soubor pro vynucené zamykání v Linuxu?","Set-group-ID bit a vypnutý group-execute bit",["Atribut immutable","Vlastníka root","Příponu .lock"],"Tahle kombinace bitů v Linuxu označuje soubor s vynuceným zamykáním."],
+["Co dělá příkaz file v Linuxu?","Určí typ souboru",["Vytvoří soubor","Zamkne soubor","Zobrazí obsah po bajtech"],"Obsah po bajtech zobrazí hex editor."],
+["Jak jsou uložené pixely v BMP?","Řádek po řádku, často zespodu nahoru",["Komprimovaně přes DCT","Sloupec po sloupci","Náhodně"],"BMP má hlavičku, DIB hlavičku, případně paletu a pak pixely odspodu."],
+],
+tf:[
+["NTFS podporuje ACL a šifrování.",true,"ACL řídí přístup podrobně, EFS šifruje obsah."],
+["Nevynucené zamykání ochrání soubor i před aplikacemi, které zámky ignorují.",false,"Advisory zámky jsou jen doporučení, neukázněný proces je obejde."],
+["mmap načte celý soubor do RAM najednou.",false,"Data se načítají líně, až když jsou potřeba."],
+["Díky VFS používají programy pro všechny FS stejná volání open, read, write, close.",true,"VFS skryje rozdíly a zavolá funkce konkrétního FS."],
+]},
+{id:"h-osi",n:7,title:"RM ISO/OSI a TCP/IP",icon:"≡",
+t:[
+["Fyzická vrstva (L1)","Přenos bitů přes médium"],
+["Spojová vrstva (L2)","Přenos rámců v jedné síti, MAC adresy"],
+["Síťová vrstva (L3)","Směrování paketů mezi sítěmi, IP"],
+["Transportní vrstva (L4)","Přenos mezi koncovými zařízeními, TCP/UDP, porty"],
+["Relační vrstva (L5)","Řízení relací mezi aplikacemi"],
+["Prezentační vrstva (L6)","Převod formátu, šifrování, komprese – TLS, JPEG"],
+["Aplikační vrstva (L7)","Síťové služby pro aplikace – HTTP, FTP, DNS"],
+["TCP","Spolehlivý přenos – doručení, pořadí, kontrola chyb"],
+["UDP","Rychlý nespolehlivý přenos – streaming, VoIP, hry"],
+["ICMP","Diagnostika a chybová hlášení – ping"],
+["ARP","Překlad IP adresy na MAC adresu"],
+["DHCP","Automatické přidělení IP adresy a parametrů sítě"],
+["DNS","Překlad doménových jmen na IP adresy"],
+["RFC","Dokumenty IETF popisující internetové standardy"],
+["Zapouzdření (encapsulation)","Každá vrstva při odesílání přidá svou hlavičku"],
+],
+q:[
+["Kolik vrstev má model TCP/IP?","4",["7","5","3"],"Síťová (přístupová), internetová, transportní a aplikační. ISO/OSI má 7."],
+["Které vrstvy OSI odpovídají aplikační vrstvě TCP/IP?","Aplikační, prezentační a relační",["Jen aplikační","Transportní a aplikační","Fyzická a spojová"],"TCP/IP sloučil vrstvy 5–7 do jedné aplikační."],
+["Na které vrstvě OSI je SSL/TLS?","Prezentační",["Transportní","Relační","Aplikační"],"V tvých poznámkách je TLS uvedené jako příklad prezentační vrstvy (šifrování)."],
+["Jak se jmenuje PDU transportní vrstvy u TCP?","Segment",["Paket","Rámec","Bit"],"Data → segment → paket → rámec → bity."],
+["Jak se jmenuje PDU síťové (internetové) vrstvy?","Paket",["Segment","Rámec","Datagram aplikace"],"Na L3 se k segmentu přidá IP hlavička a vznikne paket."],
+["Jakou adresu používá transportní vrstva?","Port",["MAC adresu","IP adresu","Doménové jméno"],"Port určuje konkrétní službu na zařízení, např. 80 HTTP, 443 HTTPS."],
+["Který protokol použiješ pro online hru?","UDP",["TCP","FTP","SMTP"],"U her a VoIP je důležitější nízké zpoždění než opakované doručení ztracených dat."],
+["Který protokol odesílá e-maily mezi servery?","SMTP",["IMAP","POP3","FTP"],"IMAP a POP3 slouží ke stahování pošty klientem."],
+["Na kterém portu běží HTTPS?","443",["80","25","21"],"80 je HTTP, 25 SMTP, 21 FTP."],
+["Které RFC definuje IPv4?","RFC 791",["RFC 793","RFC 768","RFC 2131"],"793 (dnes 9293) je TCP, 768 UDP, 2131 DHCP."],
+["Kdo vydává RFC dokumenty?","IETF",["ISO","IEEE","W3C"],"Internet Engineering Task Force."],
+],
+tf:[
+["Fyzická vrstva neřeší adresaci.",true,"Jen přenáší bity, adresace začíná až MAC adresou na L2."],
+["Při příjmu každá vrstva svou hlavičku přidá.",false,"Při příjmu se hlavičky odebírají (decapsulation), přidávají se při odesílání."],
+["ARP pracuje mezi L2 a L3.",true,"Překládá IP adresu (L3) na MAC adresu (L2)."],
+["UDP kontroluje pořadí doručených dat.",false,"To dělá TCP. UDP posílá bez potvrzení a bez kontroly pořadí."],
+]},
+];
+
+const HW3 = [
+{id:"h-net",n:8,title:"Směrování a přepínání",icon:"⇄",
+t:[
+["Switch","L2 zařízení – přeposílá rámce v LAN podle MAC adres"],
+["Router","L3 zařízení – směruje pakety mezi sítěmi podle IP adres"],
+["NAT","Překlad privátních IP adres na veřejné"],
+["STP","Spanning Tree Protocol – vypíná redundantní cesty, brání smyčkám"],
+["VLAN (802.1Q)","Rozdělení jedné fyzické sítě na více logických pomocí tagu"],
+["LACP (802.3ad)","Spojení více fyzických linek do jedné logické"],
+["LLDP","Zařízení si sdílí informace o sobě (jméno, porty, IP)"],
+["Distance Vector","Router zná vzdálenost a směr k cíli, sdílí je se sousedy – RIP"],
+["Link State","Router zná celou topologii, počítá Dijkstrou – OSPF"],
+["Path Vector","Záznam obsahuje celou cestu přes autonomní systémy – BGP"],
+["Count-to-infinity","Problém distance vector – pomalé šíření informace o výpadku"],
+["MAC adresa","48bitová fyzická adresa síťové karty, platí v LAN"],
+["Hvězdicová topologie","Vše připojené k centrálnímu prvku – nejčastější v LAN"],
+["Mesh topologie","Každý uzel s více dalšími – redundance, drahé"],
+["Kruhová topologie","Uzavřený kruh, data jedním směrem – Token Ring"],
+],
+q:[
+["Na které vrstvě OSI pracuje switch?","2 – linková",["3 – síťová","1 – fyzická","4 – transportní"],"Switch rozhoduje podle MAC adres, a ty patří linkové vrstvě."],
+["Co udělá switch s rámcem pro neznámou MAC adresu?","Pošle ho na všechny porty kromě toho, odkud přišel",["Zahodí ho","Vrátí ho odesílateli","Pošle ho routeru"],"Neznámá cílová MAC = flooding. Odpověď mu pak prozradí, na kterém portu zařízení je."],
+["Který protokol brání smyčkám v přepínané síti?","STP",["LACP","LLDP","ARP"],"STP vypne redundantní cesty, aby nevznikly broadcastové bouře."],
+["Který směrovací protokol používá Dijkstrův algoritmus?","OSPF",["RIP","BGP","STP"],"OSPF je link-state: zná celou topologii a nejkratší cestu počítá Dijkstrou."],
+["Který protokol směruje mezi autonomními systémy na internetu?","BGP",["OSPF","RIP","EIGRP"],"BGP je path vector a umožňuje směrovací politiky mezi poskytovateli."],
+["Čím trpí distance vector protokoly?","Pomalou konvergencí a count-to-infinity",["Vysokou spotřebou paměti","Nutností znát celou topologii","Ruční konfigurací"],"Informace se šíří jen od souseda k sousedovi, takže výpadek se dozví pomalu."],
+["Jak dlouhá je MAC adresa?","48 bitů",["32 bitů","128 bitů","64 bitů"],"IPv4 má 32 bitů, IPv6 128 bitů."],
+["Který protokol je proprietární od Cisco?","EIGRP",["OSPF","RIP","BGP"],"EIGRP je hybridní a efektivní, ale proprietární."],
+["Která topologie je nejčastější v moderních LAN?","Hvězdicová",["Sběrnicová","Kruhová","Mesh"],"Všechna zařízení jsou připojena ke switchi, takže je snadná správa i hledání chyb."],
+["Hlavní nevýhoda hvězdicové topologie?","Závislost na centrálním prvku",["Kolize","Porucha jednoho uzlu přeruší kruh","Vysoká cena kabeláže mezi všemi uzly"],"Když vypadne switch, přestane fungovat celá síť."],
+["Která topologie se používá v páteřních a vojenských sítích?","Mesh",["Sběrnicová","Hvězdicová","Kruhová"],"Více cest mezi uzly zajišťuje redundanci a spolehlivost."],
+["Metody přepínání rámců ve switchi?","Cut-through, store-and-forward, fragment-free",["FIFO, LIFO, Round Robin","Unicast, multicast, anycast","Static, dynamic, default"],"Store-and-forward přijme celý rámec a zkontroluje ho, cut-through posílá hned po přečtení cílové adresy."],
+],
+tf:[
+["Switch odděluje kolizní domény.",true,"Každý port má vlastní kolizní doménu."],
+["Router je rychlejší než switch, protože dělá méně práce.",false,"Router zpracovává víc (IP, směrovací tabulka, NAT), switch je rychlejší."],
+["IP adresa se může změnit, MAC adresa většinou ne.",true,"IP přiděluje třeba DHCP podle sítě, MAC je daná výrobcem karty."],
+["Statické směrování se samo přizpůsobí výpadku linky.",false,"Statické cesty nastavuje administrátor ručně, na změny nereagují."],
+]},
+{id:"h-win",n:9,title:"Operační systémy Windows",icon:"⊞",
+t:[
+["User mode","Omezený přístup – aplikace, systémové knihovny, subsystémy"],
+["Kernel mode","Plný přístup k HW – jádro, ovladače, HAL"],
+["HAL","Hardware Abstraction Layer – Windows NT běží na různých architekturách"],
+["Kernel (Windows NT)","Plánování vláken a přerušení; nikdy se neodkládá na disk"],
+["Executive","„Mozek“ jádra – I/O Manager, Memory Manager, SRM, Process Manager"],
+["SRM","Security Reference Monitor – kontroluje přístupová práva (ACL)"],
+["BSOD","Modrá obrazovka – pád systému typicky kvůli chybě ovladače v Ring 0"],
+["Win32 subsystem","Hlavní subsystém – okna, vstupy, procesy (csrss.exe, win32k.sys)"],
+["WSL","Windows Subsystem for Linux – Linuxové příkazy bez virtualizace"],
+["System (PID 4)","Systémový proces s pracovními vlákny jádra, bez .exe"],
+["smss.exe","Session manager – první proces v uživatelském režimu, vytváří relace"],
+["winlogon.exe","Přihlášení a odhlášení uživatele, spolupracuje s lsass.exe"],
+["lsass.exe","Ověřování uživatelů a bezpečnostní politiky"],
+["services.exe","Service Control Manager – spouští a řídí služby"],
+["svchost.exe","Hostitel systémových služeb"],
+["winload.exe","Zavaděč, který načte jádro, ovladače a HAL"],
+["ntoskrnl.exe","Jádro Windows – inicializuje paměť, procesy, FS a spustí smss.exe"],
+["Server Core","Edice serveru bez GUI – jen příkazová řádka a PowerShell"],
+],
+q:[
+["K jakému typu jádra se řadí Windows NT podle tvých poznámek?","Spíše monolitické (hybridní)",["Čisté mikrojádro","Exojádro","Žádné jádro"],"Windows kombinuje obě charakteristiky, většina komponent ale běží v jádře – proto spíš monolitické."],
+["Co umožnilo Windows NT běžet na různých procesorech?","HAL",["Executive","Win32 subsystem","Registry"],"HAL funguje jako překladatel mezi jádrem a konkrétním hardwarem."],
+["Proč chyba ovladače shodí celý systém?","Ovladače běží v režimu jádra (Ring 0)",["Ovladače běží v user mode","Ovladače nemají přístup k HW","Windows nemá ochranu paměti"],"V Ring 0 má ovladač neomezenou moc, takže jeho chyba může poškodit jádro – výsledkem je BSOD."],
+["Která část Executive kontroluje práva při otevření souboru?","Security Reference Monitor",["I/O Manager","Memory Manager","Process Manager"],"SRM ověří ACL oprávnění uživatele."],
+["Jaké PID má proces System?","4",["0","1","100"],"System s PID 4 hostí pracovní vlákna jádra a nemá žádný .exe soubor."],
+["Který proces je první, kdo vykonává kód v uživatelském režimu?","smss.exe",["winlogon.exe","csrss.exe","explorer.exe"],"Session manager dokončí inicializaci a vytvoří relace."],
+["Který proces ověřuje uživatele?","lsass.exe",["winlogon.exe","svchost.exe","smss.exe"],"winlogon zajišťuje přihlašovací rozhraní, samotné ověření dělá lsass."],
+["Odkud se načítá Windows Boot Manager?","Z oddílu System Reserved",["Z BIOSu","Z RAM","Z oddílu C:\\Windows"],"Boot Manager zobrazí nabídku OS a zavolá winload.exe."],
+["Správné pořadí zavádění Windows?","Firmware → Boot Manager → winload.exe → jádro → smss.exe",["Boot Manager → firmware → jádro → winload.exe → smss.exe","winload.exe → firmware → smss.exe → jádro","Firmware → smss.exe → jádro → winload.exe"],"Firmware udělá POST, Boot Manager vybere OS, winload načte jádro a jádro spustí smss.exe."],
+["Co je POST?","Power-On Self Test – kontrola hardwaru po zapnutí",["Protokol pro odesílání","Proces přihlášení","Zavaděč jádra"],"POST provede BIOS nebo UEFI hned po zapnutí."],
+],
+tf:[
+["Jádro Windows se může odložit do stránkovacího souboru.",false,"Jádro nikdy neopouští operační paměť, musí být stále připravené."],
+["POSIX subsystem se dnes aktivně využívá.",false,"Dnes se místo něj používá WSL."],
+["Server Core nemá grafické rozhraní.",true,"Spravuje se přes příkazovou řádku, PowerShell nebo vzdáleně."],
+["Win32 subsystem spolupracuje s csrss.exe a win32k.sys.",true,"Zajišťuje okna, vstupy z periferií a správu procesů."],
+]},
+{id:"h-lin",n:10,title:"Operační systémy Linux",icon:"$",
+t:[
+["Linux","Monolitické jádro pod licencí GNU GPL v2 (Linus Torvalds, 1991)"],
+["GNU/Linux","Jádro + nástroje GNU = celý operační systém"],
+["Distribuce","Jádro + GNU nástroje + shell + aplikace (Debian, Ubuntu, Fedora)"],
+["GRUB","Zavaděč – najde a načte jádro do paměti"],
+["systemd","První proces (PID 1) – paralelní start služeb, journald"],
+["LKM","Loadable Kernel Modules (.ko) – moduly připojitelné za běhu"],
+["Ring 0","Kernel mode – plná práva"],
+["Ring 3","User mode – aplikace bez přímého přístupu k HW"],
+["Syscall","Systémové volání – brána z aplikace do jádra"],
+["/proc","Virtuální FS s informacemi o procesech a jádře"],
+["/sys","Virtuální FS (sysfs) pro práci se zařízeními"],
+["Shell","Interpret příkazů v uživatelském prostoru (Bash, zsh)"],
+["SIGINT","Signál přerušení – Ctrl+C"],
+["SIGKILL","Tvrdé zabití (kill -9) – nelze ignorovat ani obsloužit"],
+["Pojmenovaná roura (FIFO)","Reálný soubor (mkfifo), mohou ji použít i nepříbuzné procesy"],
+["Socket","Komunikace lokálně i po síti (TCP/UDP)"],
+["udevd","Démon pro hardware – vytváří zařízení v /dev"],
+["crond","Spouští úlohy podle /etc/crontab"],
+["Buddy algoritmus","Paměť po blocích mocnin dvou, půlení bloků"],
+["OOM Killer","Při nedostatku paměti zabije proces s nejvyšším badness score"],
+],
+q:[
+["Jaké PID má první uživatelský proces (systemd)?","1",["0","4","100"],"systemd (dříve init) je rodičem všech dalších procesů."],
+["Jaké jádro má Linux?","Modulární monolit",["Mikrojádro","Hybridní","Exojádro"],"Hlavní funkce běží v jednom adresním prostoru jádra a moduly (LKM) se dají připojovat za běhu."],
+["Co dělá GRUB?","Najde jádro na disku a načte ho do paměti",["Testuje hardware","Spouští služby","Přiděluje IP adresy"],"Hardware testuje POST, služby spouští systemd."],
+["Proč UEFI s GPT nemá limit 2 TB?","GPT na rozdíl od MBR nemá limit velikosti disku 2 TB",["UEFI komprimuje data","GPT používá FAT32","Limit je stejný"],"BIOS využívá MBR s limitem 2 TB, UEFI využívá GPT."],
+["Kterou instrukcí se dnes provádí systémové volání?","syscall (dříve int 0x80)",["jmp","call","halt"],"Procesor se tím bezpečně přepne z Ring 3 do Ring 0."],
+["Které signály nelze ignorovat ani obsloužit?","SIGKILL a SIGSTOP",["SIGINT a SIGTERM","SIGHUP a SIGUSR1","Žádné"],"Vyřizuje je přímo jádro, ne proces."],
+["Co se stane, když aplikace v Ring 3 sáhne do cizí paměti?","Jádro ji ukončí (Segmentation Fault)",["Dostane přístup","Restartuje se systém","Nic"],"Ochrana paměti mezi procesy."],
+["Který IPC mechanismus funguje i mezi servery po síti?","Sockety",["Anonymní roura","Pojmenovaná roura","Signály"],"Roury jsou jen lokální, sockety umí IP/TCP/UDP."],
+["Proces potřebuje 3 KB. Kolik mu přidělí buddy algoritmus?","4 KB",["3 KB","8 KB","64 KB"],"Bloky jsou mocniny dvou, takže nejbližší vyšší je 4 KB – vznikne drobná interní fragmentace."],
+["Co pošle OOM Killer vybranému procesu?","SIGKILL",["SIGINT","SIGSTOP","SIGHUP"],"Proces zabije, aby zachránil systém před zamrznutím."],
+["Kde najdeš informace o běžících procesech?","/proc",["/etc","/home","/boot"],"/proc existuje jen v paměti a zobrazuje stav jádra."],
+["Který démon spouští úlohy v nastavený čas?","crond",["udevd","systemd-journald","sshd"],"Řídí se pravidly v /etc/crontab."],
+],
+tf:[
+["Linux je sám o sobě celý operační systém.",false,"Linux je jen jádro. Celý systém vzniká až s nástroji GNU (GNU/Linux)."],
+["Anonymní roura funguje jen mezi příbuznými procesy.",true,"Pro nepříbuzné procesy je pojmenovaná roura (FIFO)."],
+["Real-time signály se mohou slít do jednoho.",false,"Slít se mohou obyčejné signály. Real-time používají frontu a neztratí se."],
+["Linux byl inspirován systémem Minix.",true,"Linus Torvalds začal v roce 1991 s inspirací Minixem."],
+]},
+];
+
+const HW4 = [
+{id:"h-iot",n:11,title:"Obecné principy internetu věcí (IoT)",icon:"◎",
+t:[
+["IoT","Síť fyzických zařízení se senzory a softwarem, která sbírají a vyměňují data přes internet"],
+["IIoT","Průmyslový IoT – prediktivní údržba, automatizace výroby"],
+["Zpětná vazba v IoT","Systém na naměřená data reaguje akcí a znovu měří"],
+["IoT-A","Evropský referenční model – funkční domény, entity, služby"],
+["IIC (ARM)","Referenční model pro průmyslový IoT – zařízení, síť, služby, data, aplikace, bezpečnost"],
+["ISO/IEC IoT RA","Mezinárodní model – doménový, funkční a implementační pohled"],
+["Cisco IoT model","Sedm vrstev od fyzických zařízení po kolaboraci a procesy"],
+["ADC","Analogově-digitální převodník: vzorkování, kvantování, kódování"],
+["DAC","Digitálně-analogový převodník – např. pro reproduktory"],
+["Vzorkování","Měření hodnoty signálu v pravidelných intervalech"],
+["Kvantování","Zaokrouhlení hodnoty na nejbližší digitální úroveň"],
+["Omezené zařízení","Malý výkon, paměť (desítky kB RAM) a napájení – senzory, RFID"],
+["GDPR","Evropské nařízení o ochraně osobních údajů – právo na přístup, opravu a výmaz"],
+],
+q:[
+["Termostat zapne klimatizaci, když naměří 28 °C. Co to je?","Zpětná vazba",["Edge computing","Kvantování","Referenční model"],"Systém data nejen sbírá, ale reaguje na ně a pak sleduje nový stav."],
+["Kolik vrstev má Cisco IoT Reference Model?","7",["4","5","3"],"Od fyzických zařízení a připojení přes edge, akumulaci a abstrakci dat až po aplikace a kolaboraci."],
+["Který referenční model je zaměřený na průmyslový IoT?","IIC (ARM)",["IoT-A","Cisco","ISO/IEC"],"Industrial Internet Consortium se soustředí na výrobu a energetiku."],
+["Které pohledy definuje ISO/IEC IoT Reference Architecture?","Doménový, funkční a implementační",["Fyzický, síťový, aplikační","Edge, fog, cloud","Senzory, brána, cloud"],"Model se zaměřuje na standardizaci rozhraní a hodí se pro regulované sektory."],
+["Správné pořadí kroků A/D převodu?","Vzorkování → kvantování → kódování",["Kvantování → vzorkování → kódování","Kódování → vzorkování → kvantování","Vzorkování → kódování → kvantování"],"Nejdřív změříš hodnotu v čase, zaokrouhlíš ji na úroveň a pak převedeš na binární číslo."],
+["Výhoda digitálního signálu oproti analogovému?","Odolnost vůči šumu",["Nekonečně mnoho hodnot","Přirozenější reprezentace jevů","Zachová všechny detaily"],"Analogový signál je přirozenější, ale náchylný k rušení."],
+["Kolik RAM má typické omezené IoT zařízení?","Jednotky až desítky kB",["Jednotky GB","Stovky MB","Žádnou"],"Používá jednoduché mikrořadiče jako ARM Cortex-M."],
+["Proč omezená zařízení používají CoAP místo HTTP?","CoAP je lehčí a navržený pro omezená zařízení",["HTTP nefunguje přes Wi-Fi","CoAP je šifrovanější","HTTP neumí JSON"],"HTTP je na malá zařízení s baterií příliš náročný."],
+["Který příklad patří do IIoT?","Prediktivní údržba strojů",["Chytrá žárovka","Fitness náramek","Hlasový asistent"],"Senzory sledují stav strojů a předcházejí poruchám."],
+],
+tf:[
+["Analogový signál může nabývat nekonečně mnoha hodnot.",true,"Je spojitý v čase i v hodnotách."],
+["DAC převádí analogový signál na digitální.",false,"To dělá ADC. DAC převádí digitální na analogový, třeba v reproduktoru."],
+["Sdílení dat IoT zařízení s třetími stranami může vést k profilování uživatelů.",true,"Výrobci mohou data předávat partnerům, reklamním firmám nebo pojišťovnám."],
+["Pasivní senzor na naměřená data i reaguje.",false,"Pasivní senzor jen měří, aktivní i reaguje."],
+]},
+{id:"h-iotsec",n:12,title:"Komunikace a bezpečnost v IoT",icon:"⌁",
+t:[
+["BLE","Bluetooth Low Energy – 10–100 m, nízká spotřeba, nositelná zařízení"],
+["Zigbee","Nízká spotřeba, mesh síť, chytrá domácnost (IEEE 802.15.4)"],
+["LoRa","Dosah až 15 km, nízká spotřeba i rychlost – zemědělství"],
+["NB-IoT","Mobilní síť pro IoT do 10 km – chytré měřiče"],
+["Sigfox","Do 10 km, jednoduchý protokol – alarmy, sledování majetku"],
+["6LoWPAN","Komprese IPv6 pro nízkoenergetické sítě"],
+["RPL","Směrování v sítích s omezenými zařízeními"],
+["MQTT","Lehký publish/subscribe protokol pro IoT"],
+["CoAP","Obdoba HTTP pro omezená zařízení"],
+["DDS","Real-time komunikace v průmyslu a autonomních systémech"],
+["Edge computing","Zpracování přímo na zařízení – nejnižší latence"],
+["Fog computing","Zpracování na bráně v lokální síti, mezi edge a cloudem"],
+["Cloud computing","Zpracování v datovém centru – vysoký výkon, vyšší latence"],
+["WSN","Bezdrátová senzorová síť z mnoha malých uzlů"],
+["SMART","Cíl má být Specific, Measurable, Achievable, Relevant, Time-bound"],
+["Secure Boot","Zařízení spustí jen podepsaný důvěryhodný firmware"],
+["TPM / HSM","Hardwarové čipy pro bezpečné ukládání klíčů"],
+["Man-in-the-Middle","Útočník se vloží mezi zařízení a server"],
+["Mirai","Botnet z napadených IoT zařízení s výchozími hesly"],
+],
+q:[
+["Která technologie má největší dosah z těchto?","LoRa (až 15 km)",["BLE","Zigbee","Wi-Fi"],"BLE, Zigbee a Wi-Fi mají dosah do zhruba 100 m."],
+["Která technologie tvoří mesh síť pro chytrou domácnost?","Zigbee",["LoRa","NB-IoT","5G"],"Zigbee je postavený na IEEE 802.15.4 s nízkou spotřebou."],
+["Lehký publish/subscribe protokol pro IoT?","MQTT",["CoAP","HTTP","FTP"],"Zařízení publikují zprávy do témat a odběratelé je dostávají přes broker."],
+["Kde má zpracování nejnižší latenci?","Edge",["Fog","Cloud","Satelit"],"Edge zpracovává data přímo na zařízení, bez cesty do sítě."],
+["Kamera s AI rozhoduje lokálně bez cloudu. To je…","Edge computing",["Fog computing","Cloud computing","WSN"],"Rozhodnutí padá přímo na zařízení."],
+["Brána sbírá data senzorů a posílá do cloudu jen důležitá. To je…","Fog computing",["Edge computing","Cloud computing","D2D"],"Fog je mezivrstva v lokální síti mezi zařízeními a cloudem."],
+["Senzor pohybu přímo zapne světlo bez serveru. Jaký komunikační model?","Zařízení–zařízení (D2D)",["Zařízení–brána","Zařízení–cloud","Brána–cloud"],"Dvě zařízení komunikují přímo, s nízkou latencí a bez internetu."],
+["Co znamená T v konceptu SMART?","Time-bound – časově ohraničený",["Technical","Transparent","Testable"],"S Specific, M Measurable, A Achievable, R Relevant, T Time-bound."],
+["Která opatření patří na úroveň aplikací?","2FA, RBAC, bezpečné API",["Secure Boot, TPM","VPN, certifikáty","Uzamčení portů"],"Secure Boot a TPM jsou opatření na úrovni zařízení, VPN a certifikáty na úrovni komunikace."],
+["Riziko v posouzení hrozeb vzniká jako kombinace…","Hrozby a zranitelnosti",["Aktiva a opatření","Dopadu a ceny","Firewallu a hesla"],"Hodnotí se pravděpodobnost a dopad – vysoká obojí = kritické riziko."],
+["IoT kamera má výchozí heslo. Co to je?","Zranitelnost",["Hrozba","Aktivum","Opatření"],"Hrozbou je útočník, který ji zneužije. Opatřením je vynutit změnu hesla při prvním spuštění."],
+["Co komprimuje IPv6 pro nízkoenergetické sítě?","6LoWPAN",["RPL","MQTT","AMQP"],"RPL řeší směrování v těchto sítích."],
+],
+tf:[
+["Cloud computing je nezávislý na připojení k internetu.",false,"Cloud na připojení závisí nejvíc. Nejméně závislý je edge."],
+["UDP je v IoT vhodný pro jednoduché senzory.",true,"Je rychlý a nenáročný, ztráta jednoho měření obvykle nevadí."],
+["Secure Boot zajistí, že zařízení spustí jen podepsaný firmware.",true,"Tím brání spuštění podvrženého kódu."],
+["NB-IoT využívá mobilní síť.",true,"Hodí se pro chytré měřiče a městskou infrastrukturu."],
+]},
+{id:"h-oop",n:13,title:"Principy objektového programování",icon:"◈",
+t:[
+["Příkaz","Element kódu, který provádí akci – přiřazení, cyklus, volání"],
+["Proměnná","Pojmenované místo v paměti pro hodnotu"],
+["Typ","Určuje druh hodnoty – int, float, String"],
+["Třída","Šablona pro vytváření objektů s atributy a metodami"],
+["Objekt","Entita s vlastnostmi (atributy) a chováním (metody)"],
+["Zapouzdření","Skrytí vnitřní reprezentace, přístup přes rozhraní"],
+["Dědičnost","Třída přebírá atributy a metody nadřazené třídy"],
+["Polymorfismus","Jedno rozhraní pro různé typy"],
+["Modularita","Rozdělení kódu na menší znovupoužitelné celky"],
+["Class diagram","UML diagram tříd: jméno, atributy, metody"],
+["+","Viditelnost public v UML"],
+["-","Viditelnost private v UML"],
+["#","Viditelnost protected v UML"],
+["~","Viditelnost package v UML"],
+],
+q:[
+["Co v UML znamená znak # před atributem?","protected",["public","private","package"],"+ public, - private, # protected, ~ package."],
+["Z kolika částí se skládá třída v class diagramu?","Ze tří – jméno, atributy, metody",["Ze dvou – jméno a metody","Ze čtyř – jméno, atributy, metody, vztahy","Jen z jména"],"Obdélník rozdělený na tři části."],
+["Jak se v UML zapíše veřejná metoda vlož s parametrem částka typu double?","+ vlož(částka: double): void",["- vlož(double částka)","# void vlož(částka)","vlož: double"],"Viditelnost, název, parametry s typy a za dvojtečkou návratový typ."],
+["K čemu slouží UML?","K vizualizaci a dokumentaci návrhu softwaru",["Ke kompilaci kódu","K testování výkonu","Ke správě databáze"],"Usnadňuje komunikaci mezi vývojáři a z diagramů tříd vychází struktura kódu."],
+["Který princip skrývá vnitřní stav objektu?","Zapouzdření",["Dědičnost","Polymorfismus","Modularita"],"K datům se přistupuje přes veřejné metody, atributy bývají private."],
+],
+tf:[
+["Třída je instance objektu.",false,"Obráceně: objekt je instance třídy, třída je šablona."],
+["Znak - v UML označuje soukromý (private) člen.",true,"Typicky atributy jako - zůstatek: double."],
+["Dědičnost umožňuje převzít atributy a metody nadřazené třídy.",true,"Podtřída je může rozšířit nebo přepsat."],
+]},
+{id:"h-data",n:14,title:"Reprezentace dat a jejich zpracování",icon:"{ }",
+t:[
+["Pole","Konečná posloupnost prvků stejného typu v souvislé paměti, index od 0"],
+["Dynamické pole (ArrayList)","Interně pole, při zaplnění se realokuje větší"],
+["Spojový seznam","Uzly s ukazatelem na další, poslední ukazuje na null"],
+["Fronta","FIFO – první dovnitř, první ven"],
+["Zásobník","LIFO – push, pop, peek"],
+["Stream","Abstrakce posloupnosti dat ke čtení nebo zápisu"],
+["BufferedReader","Čtení textových souborů v Javě"],
+["FileInputStream","Čtení binárních souborů v Javě"],
+["Objektová persistence","Uchování stavu objektů mimo běh programu"],
+["JDBC","Java API pro databáze – Connection, Statement, PreparedStatement, ResultSet"],
+["JSON","Objekty v { }, pole v [ ], dvojice klíč–hodnota"],
+["XML","Párové značky tvořící stromovou strukturu"],
+["CSV","Řádek = záznam, hodnoty oddělené čárkami"],
+],
+q:[
+["Složitost sekvenčního vyhledávání?","O(n)",["O(log n)","O(1)","O(n²)"],"V nejhorším případě projde všechny prvky."],
+["Podmínka binárního vyhledávání?","Seřazená data s přímým přístupem",["Spojový seznam","Unikátní hodnoty","Hash funkce"],"Půlení intervalu funguje jen tehdy, když víš, na kterou stranu pokračovat."],
+["Který algoritmus řazení vybírá v každém kroku minimum?","Selection sort",["Insertion sort","Bubble sort","Merge sort"],"Najde nejmenší prvek z nesetříděné části a dá ho na konec setříděné."],
+["Který řadicí algoritmus rekurzivně půlí a slévá?","Merge sort",["Quick sort","Bubble sort","Insertion sort"],"Rozdělí na poloviny, každou seřadí a seřazené části slije – O(n log n)."],
+["Na čem závisí efektivita Quick sortu?","Na výběru pivotu",["Na délce klíčů","Na počtu jader","Na velikosti cache"],"Špatný pivot vede až na O(n²)."],
+["Kterou třídou v Javě čteš binární soubor?","FileInputStream",["BufferedReader","FileReader","FileWriter"],"Reader a Writer jsou pro text, Stream pro binární data."],
+["Který formát používá párové značky?","XML",["JSON","CSV","YAML"],"JSON používá závorky, CSV čárky."],
+["Které rozhraní JDBC je bezpečné proti SQL injection?","PreparedStatement",["Statement","ResultSet","Connection"],"PreparedStatement odděluje parametry od SQL dotazu."],
+],
+tf:[
+["Pole se indexuje zpravidla od jedničky.",false,"Zpravidla od nuly."],
+["Bubble sort má složitost O(n²).",true,"Opakovaně porovnává a prohazuje sousední dvojice."],
+["JSON vznikl jako lehčí alternativa k XML.",true,"Má jednodušší zápis podobný objektovým literálům JavaScriptu."],
+]},
+{id:"h-ds",n:15,title:"Datové struktury",icon:"⊟",
+t:[
+["Kolekce (Collection Framework)","Rozhraní a třídy pro práci se skupinami objektů v java.util"],
+["List","Seznam s pořadím a indexy, prvky se mohou opakovat"],
+["Set","Množina bez duplicit, bez určeného pořadí"],
+["Map","Dvojice klíč–hodnota, asociativní pole"],
+["ArrayList","Seznam nad polem – rychlý přístup, pomalé vkládání"],
+["LinkedList","Rychlé vkládání a mazání, pomalý přímý přístup"],
+["HashSet","Množina s hašovací tabulkou, objekty potřebují hashCode()"],
+["TreeSet","Seřazená množina – first(), last(), subSet()"],
+["LinkedHashSet","Hashset zachovávající pořadí vložení"],
+["HashMap","Mapa nad hašovací tabulkou – rychlé vkládání a hledání"],
+["TreeMap","Mapa se seřazenými klíči"],
+["Iterátor","Sekvenční procházení – next(), hasNext(), remove()"],
+["Comparable","Rozhraní s metodou compareTo() pro porovnatelnost"],
+["Kruhový buffer","Fronta nad polem, head a tail se vracejí na začátek"],
+["Hash kolize","Dva klíče se zahashují na stejný index – řeší se řetězením nebo přepočítáním"],
+],
+q:[
+["Které rozhraní nesmí obsahovat duplicity?","Set",["List","Map hodnoty","Queue"],"Objekty v Setu musí překrývat equals(), aby šla určit jedinečnost."],
+["Kterou metodu musí objekty v HashSet definovat?","hashCode()",["compareTo()","toString()","clone()"],"Podle hashCode() se objekt zařadí do políčka tabulky."],
+["Kdy zvolíš LinkedList místo ArrayList?","Při častém vkládání a mazání",["Při častém přístupu podle indexu","Když potřebuješ seřazení","Když chceš množinu"],"LinkedList jen přepojí ukazatele, ArrayList musí posouvat prvky."],
+["Složitost přístupu k prvku pole přes index?","O(1)",["O(n)","O(log n)","O(n²)"],"Adresa se spočítá přímo z indexu."],
+["Složitost přístupu k libovolnému prvku spojového seznamu?","O(n)",["O(1)","O(log n)","O(n log n)"],"Musíš projít uzly od začátku."],
+["Které operace má zásobník?","push, pop, peek",["enqueue, dequeue","put, get","next, hasNext"],"enqueue a dequeue jsou operace fronty."],
+["K čemu se používá zásobník?","Undo, call stack, vyhodnocení výrazů",["Fronta tisku","Plánování procesů FCFS","Audio streamy"],"Poslední vložený je první odebraný – přesně to potřebuje návrat z volání funkcí."],
+["Proč se fronta nad polem dělá jako kruhový buffer?","Aby se prvky nemusely posouvat",["Aby byla rychlejší než zásobník","Aby šla řadit","Aby neměla limit"],"head a tail se po dosažení konce vrací na začátek pole."],
+["Riziko zásobníku implementovaného polem?","Přetečení (Stack Overflow)",["Hash kolize","Nemožnost pop","Pomalý push"],"Pole má pevnou velikost. Spojový seznam tenhle problém nemá."],
+["Průměrná složitost hledání v asociativním poli (hash tabulce)?","O(1)",["O(n)","O(log n)","O(n²)"],"Klíč se hash funkcí převede přímo na index."],
+],
+tf:[
+["TreeSet je seřazený kontejner.",true,"Implementuje SortedSet a nabízí first(), last() a subSet()."],
+["V Listu nemůže být stejný prvek dvakrát.",false,"V Listu ano, duplicity zakazuje Set."],
+["Hash tabulka garantuje pořadí prvků.",false,"Pořadí není garantované, zachovává ho až LinkedHashSet nebo LinkedHashMap."],
+["Iterátor umožňuje procházet prvky bez znalosti implementace kolekce.",true,"Stačí hasNext() a next()."],
+]},
+{id:"h-ui",n:16,title:"Tvorba uživatelského rozhraní",icon:"▣",
+t:[
+["UI komponenta","Stavební prvek GUI – tlačítko, pole, menu, tabulka"],
+["Absolute positioning","Pevné rozmístění – nevhodné pro responzivní návrh"],
+["Layout manager","Dynamické rozvržení komponent (BorderLayout, GridLayout…)"],
+["Responzivní UI","Přizpůsobí se zařízení – media queries, flexbox, grid, relativní jednotky"],
+["Událostmi řízené programování","Kód se spouští jako reakce na události"],
+["Listener","Objekt, který čeká na událost"],
+["Event","Objekt reprezentující událost (ActionEvent)"],
+["Callback","Funkce volaná při výskytu události"],
+["Interface","Specifikuje metody, které třída musí implementovat"],
+["Vnitřní třída","Třída definovaná uvnitř jiné, často pro obsluhu událostí"],
+["MVC","Model – data, View – zobrazení, Controller – interakce"],
+["MVVM","View se váže na ViewModel přes data binding"],
+["MVP","Presenter přebírá veškerou logiku, View je „hloupé“"],
+],
+q:[
+["Který layout manager patří do JavaFX?","HBox / VBox",["BorderLayout","FlowLayout","CSS grid"],"BorderLayout a FlowLayout jsou Swing, CSS grid je web."],
+["Čím se dělá responzivní web?","Media queries, flexbox/grid a relativní jednotky",["Pevnými pixely","Absolute positioning","Tabulkovým layoutem"],"Stránka se pak přizpůsobí mobilu, tabletu i PC."],
+["Které rozhraní v Javě obsluhuje kliknutí na tlačítko?","ActionListener",["Runnable","Comparable","Serializable"],"Má metodu actionPerformed(ActionEvent e)."],
+["Čím se liší událostmi řízené programování od procedurálního?","Kód čeká na události a reaguje na ně",["Běží striktně shora dolů","Nepoužívá funkce","Nemá proměnné"],"Procedurální kód určuje pořadí sám, event-driven kód reaguje na kliknutí, klávesy nebo síť."],
+["Ve kterém vzoru je View úplně pasivní?","MVP",["MVC","MVVM","MVT"],"Presenter přebírá veškerou logiku, a to výrazně usnadňuje testování UI."],
+["Jak se v MVVM aktualizuje View?","Automaticky přes data binding",["Ručně Controllerem","Presenter ho překreslí","Vůbec"],"View a ViewModel o sobě nemusejí přímo vědět."],
+],
+tf:[
+["Absolute positioning je vhodné pro responzivní návrh.",false,"Pevné souřadnice se nepřizpůsobí velikosti obrazovky."],
+["MVC zlepšuje modularitu a testovatelnost.",true,"Data, zobrazení a řízení jsou oddělené."],
+["Vnitřní třídy se často používají pro zpracování událostí v UI.",true,"Například anonymní třída s ActionListenerem."],
+]},
+];
+
+const HW5 = [
+{id:"h-netapp",n:17,title:"Síťové a víceúlohové aplikace",icon:"⇋",
+t:[
+["Klient","Software nebo zařízení, které požaduje služby"],
+["Server","Software nebo zařízení, které služby poskytuje"],
+["Protokol","Formální pravidla komunikace mezi zařízeními"],
+["Socket","Koncový bod komunikace – IP adresa + port"],
+["Unicast","Komunikace 1:1 – webový požadavek"],
+["Multicast","Komunikace 1:vybraní – IPTV"],
+["Broadcast","Komunikace 1:všichni – ARP dotaz"],
+["WebSocket","Trvalé obousměrné spojení pro interaktivní weby"],
+["Multitasking","Zpracování více programů současně"],
+["Klient–server","Centrální server obsluhuje mnoho klientů"],
+["Peer-to-peer","Každý uzel je klientem i serverem"],
+["Thread-per-request","Každý požadavek dostane vlákno z poolu – izolace, ale velká spotřeba paměti"],
+["Event-driven model","Jedno vlákno s event loopem a neblokujícím I/O – Node.js"],
+],
+q:[
+["Jakým způsobem komunikace se posílá ARP dotaz?","Broadcast",["Unicast","Multicast","Anycast"],"ARP neví, kdo má hledanou IP adresu, proto se ptá všech v síti."],
+["Který způsob komunikace používá IPTV?","Multicast",["Unicast","Broadcast","Peer-to-peer"],"Jeden zdroj vysílá jen skupině odběratelů, kteří se přihlásili."],
+["Co tvoří socket?","IP adresa a port",["MAC adresa a port","Doména a URL","Jen IP adresa"],"Kombinace jednoznačně určí koncový bod komunikace."],
+["Který protokol udržuje trvalé spojení pro interaktivní weby?","WebSocket",["HTTP/1.0","FTP","SMTP"],"Po navázání může server posílat data klientovi bez nového požadavku."],
+["Nevýhoda modelu thread-per-request?","Velká spotřeba paměti při tisících spojení",["Žádná izolace požadavků","Blokuje event loop","Neumí paralelismus"],"Každé vlákno potřebuje vlastní zásobník."],
+["Jak zvládne Node.js tisíce spojení jedním vláknem?","Event loop a neblokující I/O s callbacky",["Vytvoří vlákno pro každého klienta","Spouští více procesů pro každý požadavek","Odmítne ostatní spojení"],"Vlákno nečeká na I/O, a když jsou data připravená, zavolá se callback."],
+["Který server je typicky webový?","Nginx / Apache",["PostgreSQL","SMB","Postfix"],"PostgreSQL je databázový server, SMB souborový."],
+],
+tf:[
+["V peer-to-peer je každý uzel klientem i serverem.",true,"Uzly si zdroje sdílí navzájem, bez centrálního serveru."],
+["TCP je bezspojový protokol.",false,"TCP je spojově orientovaný. Bezspojový je UDP."],
+["Víceúlohové aplikace vyžadují synchronizaci a ochranu sdílených zdrojů.",true,"Jinak hrozí race conditions a poškození dat."],
+]},
+{id:"h-web",n:18,title:"Publikování na webu",icon:"</>",
+t:[
+["HTML","Strukturuje obsah stránky – elementy a atributy"],
+["Sémantické prvky HTML5","<article>, <section>, <nav>, <aside>"],
+["CSS","Vzhled stránky – selektory, kaskáda, dědičnost"],
+["Box model","content → padding → border → margin"],
+["JavaScript","Dynamicky typovaný, prototypový, event-driven jazyk pro interaktivitu"],
+["PHP","Serverový skriptovací jazyk pro dynamické HTML"],
+["Mobile-first","Výchozí styly pro malé obrazovky, větší přidávají styly"],
+["Container queries","Styl podle velikosti kontejneru, ne celé obrazovky"],
+["WCAG","Pravidla přístupnosti: vnímatelný, ovladatelný, srozumitelný, robustní"],
+["WAI-ARIA","Atributy (aria-label, role) dodávající sémantiku asistenčním technologiím"],
+["Wireframe","Základní skica struktury webu bez finální grafiky"],
+["DOM","Stromový objektový model dokumentu, kořen je document"],
+["Fetch API","Moderní asynchronní HTTP požadavky, nahrazuje XMLHttpRequest"],
+["LocalStorage","Data v prohlížeči přetrvají i po zavření"],
+["SessionStorage","Data zmizí po zavření okna"],
+["Lighthouse / axe-core","Automatické testy přístupnosti"],
+],
+q:[
+["Správné pořadí CSS box modelu zevnitř ven?","content → padding → border → margin",["content → margin → border → padding","padding → content → border → margin","border → padding → content → margin"],"Padding je uvnitř rámečku, margin vně."],
+["Jaký selektor CSS cílí na ID?","#id",[".id","id","::id"],"Tečka je třída, holé jméno je element."],
+["Co znamená mobile-first?","Výchozí styly pro mobil, větší obrazovky přidávají",["Web jen pro mobil","Desktop napřed, pak úpravy","Aplikace místo webu"],"Je to rychlejší a optimalizované pro většinu dnešních uživatelů."],
+["Který princip WCAG říká, že web musí jít ovládat klávesnicí?","Operable (ovladatelný)",["Perceivable","Understandable","Robust"],"Perceivable je o vnímání (alt texty), Robust o kompatibilitě s asistenčními technologiemi."],
+["Co je lepší pro přístupnost?","<button> místo <div onclick>",["<div onclick> místo <button>","<span> pro nadpisy","Obrázek s textem bez alt"],"Button je fokusovatelný klávesnicí a čtečka ví, že jde o tlačítko."],
+["Čím se v DOM vybere prvek podle CSS selektoru?","querySelector",["getElementsByTag","selectNode","findCSS"],"Pro všechny shody querySelectorAll."],
+["Kde data zmizí po zavření okna?","SessionStorage",["LocalStorage","Cookie s expirací","IndexedDB"],"LocalStorage přetrvá."],
+["Který nástroj je na E2E testy od Microsoftu?","Playwright",["Jest","ESLint","Stylelint"],"Jest testuje logiku, ESLint a Stylelint kontrolují kód."],
+["Čím ověříš syntaxi HTML a CSS dle standardů?","W3C Validator",["Lighthouse","Jest","Figma"],"Lighthouse a axe-core testují přístupnost a výkon."],
+["Který framework je od Googlu?","Angular",["React","Vue","Bootstrap"],"React je od Facebooku (Meta), Bootstrap je CSS framework."],
+],
+tf:[
+["WAI-ARIA atributy mění vizuální podobu webu.",false,"Vzhled nemění, jen dodávají sémantiku pro čtečky."],
+["PHP se spouští v prohlížeči.",false,"PHP běží na serveru a do prohlížeče posílá hotové HTML."],
+["Pomocí DOM lze měnit stránku bez reloadu.",true,"Na tom stojí Single Page Applications."],
+["Container queries stylují prvek podle šířky celé obrazovky.",false,"Podle velikosti kontejneru, do kterého je prvek vložený."],
+]},
+{id:"h-om",n:19,title:"Objektové modelování",icon:"◇",
+t:[
+["Identita objektu","Odlišuje objekt od jiných"],
+["Stav objektu","Konkrétní hodnoty atributů"],
+["Chování objektu","Jak reaguje na zprávy (metody)"],
+["Abstrakce","Jen podstatné vlastnosti pro daný účel – interface"],
+["extends","Klíčové slovo pro dědičnost v Javě"],
+["Analytický model tříd","Doménový model – CO systém reprezentuje"],
+["Návrhový model tříd","Technický model – datové typy, vzory, Controller/Service/Repository"],
+["Asociace","Vztah mezi třídami s rolí, násobností a směrem"],
+["Násobnost","Kolik instancí je ve vztahu – 1, 0..1, 0..*, 1..*"],
+["Agregace","Slabý vztah celek–část, prázdný kosočtverec"],
+["Kompozice","Silný vztah celek–část, plný kosočtverec – části zanikají s celkem"],
+["Generalizace","Vztah „je podtypem“, prázdný trojúhelník k nadtřídě"],
+],
+q:[
+["Tým a hráč (hráč existuje i mimo tým). Jaký vztah?","Agregace",["Kompozice","Generalizace","Závislost"],"Část může existovat bez celku – slabé vlastnictví, prázdný kosočtverec."],
+["Objednávka a položka objednávky. Jaký vztah?","Kompozice",["Agregace","Generalizace","Asociace bez násobnosti"],"Položka bez objednávky nemá smysl a zaniká s ní – plný kosočtverec."],
+["Jak se v UML značí generalizace?","Prázdným trojúhelníkem směrem k nadtřídě",["Plným kosočtvercem","Prázdným kosočtvercem","Přerušovanou šipkou"],"Např. Programátor → Zaměstnanec."],
+["Co znamená násobnost 1..*?","Jeden až mnoho",["Nula až mnoho","Právě jeden","Nula nebo jeden"],"0..* je nula až mnoho, 0..1 nula nebo jeden."],
+["Co zachycuje analytický model tříd?","CO má systém reprezentovat (doménu)",["Technické třídy a vzory","Databázové indexy","Uživatelské rozhraní"],"Návrhový model pak doplní technické detaily jako Controller, Service, Repository."],
+["Kterým klíčovým slovem v Javě vyjádříš abstrakci rozhraním?","interface",["extends","static","final"],"Interface říká, jaké operace objekt poskytuje, ne jak je implementuje."],
+["Jaká viditelnost zpřístupní člen děděným třídám?","protected",["private","public jen v balíčku","static"],"Private je jen ve třídě, public všude."],
+],
+tf:[
+["Při kompozici části zaniknou spolu s celkem.",true,"Životní cyklus je svázaný."],
+["Objektové modelování závisí na konkrétním programovacím jazyce.",false,"Je na jazyce nezávislé."],
+["Polymorfismus se implementuje například přepsáním metody (override).",true,"Různé objekty pak reagují na stejnou zprávu různě."],
+["Nefunkční požadavek říká, co má systém dělat.",false,"To je funkční požadavek. Nefunkční se týkají technologií, výkonu, dokumentace."],
+]},
+];
+const HW_ORDERS = [
+["Instrukční cyklus","h-mp",["Fetch – načtení instrukce","Decode – dekódování","Execute – provedení v ALU","Writeback – zápis výsledku"]],
+["Hierarchie pamětí od nejrychlejší","h-mem",["Registry","Cache L1–L3","RAM","SSD / HDD","Páskové jednotky"]],
+["Vrstvy ISO/OSI odspodu","h-osi",["Fyzická","Spojová","Síťová","Transportní","Relační","Prezentační","Aplikační"]],
+["Zapouzdření při odesílání (PDU)","h-osi",["Data (aplikační)","Segment (transportní)","Paket (internetová)","Rámec (linková)","Bity (fyzická)"]],
+["Zavádění Windows","h-win",["Firmware (BIOS/UEFI) a POST","Windows Boot Manager","winload.exe","Jádro ntoskrnl.exe","smss.exe","winlogon.exe, lsass.exe, services.exe"]],
+["Start Linuxu","h-lin",["POST a BIOS/UEFI","Zavaděč GRUB","Rozbalení a inicializace jádra","První proces (PID 1)","systemd spustí služby a přihlášení"]],
+["A/D převod","h-iot",["Vzorkování","Kvantování","Kódování"]],
+["Posouzení hrozeb a zranitelností","h-iotsec",["Identifikace aktiv","Identifikace hrozeb","Identifikace zranitelností","Analýza rizik","Návrh opatření","Implementace a sledování"]],
+["Zpětná vazba v IoT","h-iot",["Senzor změří stav","Data se zpracují","Systém provede akci","Nový stav se znovu změří"]],
+["Načtení webu přes vrstvy","h-osi",["DNS přeloží doménu na IP","IP adresa určí cílový server","Port určí službu (HTTP)","MAC adresa doručí rámec v LAN","Přenos bitů přes médium"]],
+["Výrobce v úloze výrobce × spotřebitel","h-os",["Počká na volné místo (empty)","Zamkne buffer (mutex)","Přidá položku","Odemkne buffer","Zvýší počet full"]],
+["Box model zevnitř","h-web",["Content","Padding","Border","Margin"]],
+];
+
+
 </script>
 <script>
-const CH = [...DATA1, ...DATA2, ...DATA3];
+const SUBJ = [
+  { id: "sw", name: "Software", full: "Softwarové inženýrství", ch: [...DATA1, ...DATA2, ...DATA3], orders: ORDERS },
+  { id: "hw", name: "Hardware", full: "Technické a softwarové prostředky", ch: [...HW1, ...HW2, ...HW3, ...HW4, ...HW5], orders: HW_ORDERS },
+];
+SUBJ.forEach(s => s.ch.forEach(c => c.subj = s.id));
+const CH = SUBJ.flatMap(s => s.ch);
 const CHMAP = Object.fromEntries(CH.map(c => [c.id, c]));
 const $ = (s, el = document) => el.querySelector(s);
 const app = $("#app");
@@ -1163,7 +1885,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /* ---------- STATE ---------- */
 const KEY = "statnice-se-v1";
-const DEF = { xp: 0, done: {}, box: {}, ach: {}, stats: { quizzes: 0, bestSpeed: 0, bosses: 0, cards: 0, bestCombo: 0, perfect: 0, matches: 0, orders: 0 }, streak: 0, lastDay: "", dayXP: 0, dayDate: "", nick: "", sel: [] };
+const DEF = { xp: 0, done: {}, box: {}, ach: {}, stats: { quizzes: 0, bestSpeed: 0, bosses: 0, cards: 0, bestCombo: 0, perfect: 0, matches: 0, orders: 0 }, streak: 0, lastDay: "", dayXP: 0, dayDate: "", nick: "", sel: [], subj: "sw" };
 let S = structuredClone(DEF);
 try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(structuredClone(DEF), JSON.parse(r)); S.stats = Object.assign(structuredClone(DEF.stats), S.stats); } catch (e) {}
 let DB = null, UID = null, saveTimer = null;
@@ -1196,10 +1918,14 @@ function items(ch) {
 }
 const ALLITEMS = Object.fromEntries(CH.map(c => [c.id, items(c)]));
 function mastery(id) { const it = ALLITEMS[id]; return it.filter(x => S.done[x.id]).length / it.length; }
+function subj() { return SUBJ.find(s => s.id === S.subj) || SUBJ[0]; }
+function subjCh() { return subj().ch; }
+function subjMastery(sid) { let a = 0, b = 0; SUBJ.find(s => s.id === sid).ch.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
 function totalMastery() { let a = 0, b = 0; CH.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
 function poolFor(ids) { return ids.flatMap(id => ALLITEMS[id]); }
 function weighted(pool, n) { const nd = shuffle(pool.filter(x => !S.done[x.id])), d = shuffle(pool.filter(x => S.done[x.id])); return shuffle([...nd.slice(0, Math.ceil(n * 0.7)), ...d, ...nd.slice(Math.ceil(n * 0.7))].slice(0, n)); }
-function selIds() { return S.sel.length ? S.sel : CH.map(c => c.id); }
+function curSel() { return S.sel.filter(id => CHMAP[id] && CHMAP[id].subj === subj().id); }
+function selIds() { const s = curSel(); return s.length ? s : subjCh().map(c => c.id); }
 
 /* ---------- XP / ACHIEVEMENTS ---------- */
 const ACH = [
@@ -1214,10 +1940,10 @@ const ACH = [
   ["speed25", "25", "Turbo mozek", "Bleskovka 25+ bodů"],
   ["boss", "Bc.", "Před komisí", "Přesvědč komisi"],
   ["boss3", "3×", "Komise se bojí", "Přesvědč komisi třikrát"],
-  ["allch", "22", "Průzkumnice", "Odpověz v každém okruhu"],
+  ["allch", "vše", "Průzkumnice", "Odpověz v každém okruhu předmětu"],
   ["master1", "100", "Expertka", "Jeden okruh na 100 %"],
-  ["master50", "50 %", "Půlka hotová", "Celkem zvládnuto 50 %"],
-  ["master100", "100 %", "Připravená", "Celkem zvládnuto 100 %"],
+  ["master50", "50 %", "Půlka hotová", "Předmět zvládnutý na 50 %"],
+  ["master100", "100 %", "Připravená", "Předmět zvládnutý na 100 %"],
   ["lvl5", "L5", "Level 5", "Dosáhni levelu 5"],
   ["lvl10", "L10", "Level 10", "Dosáhni levelu 10"],
   ["streak3", "3 d", "Tři dny v kuse", "Uč se 3 dny po sobě"],
@@ -1226,9 +1952,9 @@ const ACH = [
 function unlock(id) { if (S.ach[id]) return; S.ach[id] = Date.now(); const a = ACH.find(x => x[0] === id); slam(stampSVG(a, true), "Nové razítko: " + a[2]); save(); }
 function checkAch() {
   if (S.stats.cards >= 50) unlock("cards50");
-  if (CH.every(c => ALLITEMS[c.id].some(x => S.done[x.id]))) unlock("allch");
+  if (SUBJ.some(s => s.ch.every(c => ALLITEMS[c.id].some(x => S.done[x.id])))) unlock("allch");
   if (CH.some(c => mastery(c.id) === 1)) unlock("master1");
-  const tm = totalMastery(); if (tm >= 50) unlock("master50"); if (tm >= 100) unlock("master100");
+  const tm = Math.max(...SUBJ.map(s => subjMastery(s.id))); if (tm >= 50) unlock("master50"); if (tm >= 100) unlock("master100");
   const L = lvl(S.xp).n; if (L >= 5) unlock("lvl5"); if (L >= 10) unlock("lvl10");
   if (S.streak >= 3) unlock("streak3"); if (S.streak >= 7) unlock("streak7");
 }
@@ -1287,7 +2013,8 @@ function renderHUD() {
   $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
   <div class="lvl"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar" title="${L.cur} z ${L.need} XP do dalšího levelu"><i style="width:${L.cur / L.need * 100}%"></i></div></div>
   <span class="stat num"><b>${S.streak}</b> ${S.streak === 1 ? "den" : S.streak >= 2 && S.streak <= 4 ? "dny" : "dní"} v řadě</span>
-  <span class="stat num hide-s"><b>${totalMastery()} %</b> zvládnuto</span>`;
+  <div class="subj" role="tablist" aria-label="Předmět">${SUBJ.map(s => `<button role="tab" aria-selected="${s.id === S.subj}" data-subj="${s.id}" title="${esc(s.full)}">${s.name}<small class="num">${subjMastery(s.id)} %</small></button>`).join("")}</div>`;
+  $("#hud").querySelectorAll("[data-subj]").forEach(b => b.onclick = () => { if (S.subj === b.dataset.subj && $(".hero")) return; S.subj = b.dataset.subj; save(); renderHUD(); go(home); });
   $("#homebtn").onclick = () => go(home);
 }
 const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); return `<div class="stub">${c.n}<small>okruh</small></div><div class="body"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${m}%"></i></div><span class="num">${m} %</span></div></div>${extra}`; };
@@ -1296,17 +2023,17 @@ const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
 /* ---------- HOME ---------- */
 function home() {
   const d = today(); const dayXP = S.dayDate === d ? S.dayXP : 0; const goal = 100;
-  const weak = CH.slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
+  const weak = subjCh().slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
   const fanPos = [[-13, 26, -150], [-6.5, 8, -75], [0, 0, 0], [6.5, 8, 75], [13, 26, 150]];
   const ids = selIds();
-  const total = CH.reduce((a, c) => a + ALLITEMS[c.id].length, 0);
+  const total = subjCh().reduce((a, c) => a + ALLITEMS[c.id].length, 0);
   const rec = { quiz: S.stats.quizzes + "× odehráno", cards: S.stats.cards + " kartiček", match: S.stats.matches + "× spojeno", speed: "rekord " + S.stats.bestSpeed, order: S.stats.orders + "× seřazeno", boss: S.stats.bosses + "× přesvědčena" };
   const M = [["boss", "Státnice nanečisto", "Vylosuj dva okruhy a přesvědč komisi"], ["quiz", "Kvíz", "Deset otázek, série zvyšuje body"], ["cards", "Kartičky", "Co neumíš, uvidíš příště dřív"], ["match", "Přiřazovačka", "Spoj šest pojmů s definicemi"], ["speed", "Bleskovka", "60 sekund, chyba stojí 3 sekundy"], ["order", "Seřaď postup", "Fáze, cykly a kroky algoritmů"]];
   app.innerHTML = `
   <section class="hero">
     <div>
-      <h1>Státnice ze Softwarového inženýrství</h1>
-      <p class="lead">22 okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
+      <h1${S.subj === "hw" ? ' style="font-size:clamp(36px,5vw,62px)"' : ""}>${S.subj === "hw" ? "Státnice z Technických a softwarových prostředků" : "Státnice ze Softwarového inženýrství"}</h1>
+      <p class="lead">${subjCh().length} okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
       <div class="acts"><button class="btn-main" data-mode="boss">Vylosovat okruhy</button><button class="btn-ghost" data-mode="quiz">Rychlý kvíz</button></div>
       <div class="today"><div class="small"><b class="num">${Math.min(dayXP, goal)} / ${goal} XP</b> <span class="mute">dnešní cíl${dayXP >= goal ? " splněn" : ""}</span></div><div class="line"><i style="width:${Math.min(dayXP / goal, 1) * 100}%"></i></div></div>
     </div>
@@ -1316,12 +2043,12 @@ function home() {
     </div>
   </section>
   <section>
-    <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${S.sel.length ? `Hraješ z ${S.sel.length} ${plural(S.sel.length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
+    <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${curSel().length ? `Hraješ z ${curSel().length} ${plural(curSel().length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
     <div class="modes">${M.map(m => `<button class="mode" data-mode="${m[0]}">${icon(m[0])}<span><b>${m[1]}</b><span class="d">${m[2]}</span></span><span class="rec num">${rec[m[0]]}</span></button>`).join("")}</div>
   </section>
   <section>
     <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
-    <div class="grid-tk">${CH.map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
+    <div class="grid-tk">${subjCh().map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
   </section>
   <section class="twocol">
     <div><div class="sec-head"><h2>Index</h2><span class="small mute num">${Object.keys(S.ach).length} z ${ACH.length} razítek</span></div>
@@ -1331,7 +2058,7 @@ function home() {
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => go(MODES[b.dataset.mode].bind(null, ids)));
   app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
   app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(); scrollTo(0, y); });
-  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = []; save(); const y = scrollY; home(); scrollTo(0, y); };
+  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(); scrollTo(0, y); };
   renderLB();
 }
 
@@ -1480,7 +2207,7 @@ function speed(ids, back = home) {
 
 /* ---------- ORDER ---------- */
 function order(ids, back = home) {
-  let list = ORDERS.filter(o => ids.includes(o[1])); if (!list.length) list = ORDERS;
+  const OR = subj().orders; let list = OR.filter(o => ids.includes(o[1])); if (!list.length) list = OR;
   const [name, ch, steps] = pick(list, 1)[0]; const sh = shuffle(steps.map((s, i) => ({ s, i })));
   let built = [], tries = 0;
   function render() {
@@ -1503,14 +2230,14 @@ function order(ids, back = home) {
 
 /* ---------- BOSS ---------- */
 function boss(ids, back = home) {
-  const drawn = pick(ids.length >= 2 ? ids : CH.map(c => c.id), 2);
+  const drawn = pick(ids.length >= 2 ? ids : subjCh().map(c => c.id), 2);
   app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Zpět</button></div><h1 style="font-size:clamp(40px,7vw,64px)">Losování</h1>
   <p class="mute" style="margin-top:10px;max-width:52ch">Komise ti položí 12 otázek z vylosovaných okruhů. Každá správná odpověď ji přesvědčí o kus víc. Máš tři pokusy na chybu.</p>
   <div class="draw"><div class="tk" id="d1"></div><div class="tk" id="d2"></div></div><button class="btn-main" id="go" disabled>Předstoupit před komisi</button></div>`;
   $(".back").onclick = () => go(back);
   let n = 0; const fake = c => ticket(c);
   const sp = setInterval(() => {
-    const a = pick(CH, 2); $("#d1").innerHTML = fake(a[0]); $("#d2").innerHTML = fake(a[1]);
+    const a = pick(subjCh(), 2); $("#d1").innerHTML = fake(a[0]); $("#d2").innerHTML = fake(a[1]);
     if (++n > 12) { clearInterval(sp); [["#d1", drawn[0]], ["#d2", drawn[1]]].forEach(([s, id], k) => { const el = $(s); el.innerHTML = ticket(CHMAP[id]); el.style.animationDelay = k * 140 + "ms"; el.classList.add("spin"); }); $("#go").disabled = false; $("#go").focus({ preventScroll: true }); }
   }, 85);
   timers.push(sp);
@@ -1549,7 +2276,7 @@ const MODES = { quiz, cards, match, speed, order, boss };
 function renderLB() {
   const el = $("#lb"); if (!el) return;
   const L = lvl(S.xp);
-  const txt = `Státnice SWI: mám level ${L.n} (${L.title}), ${S.xp} XP a ${totalMastery()} % zvládnuto. Bleskovka rekord: ${S.stats.bestSpeed}, razítka ${Object.keys(S.ach).length}/${ACH.length}. Překonáš mě? ` + (location.href.split("#")[0]);
+  const txt = `Státnice SWI: mám level ${L.n} (${L.title}), ${S.xp} XP, zvládnuto Software ${subjMastery("sw")} % a Hardware ${subjMastery("hw")} %. Bleskovka rekord: ${S.stats.bestSpeed}, razítka ${Object.keys(S.ach).length}/${ACH.length}. Překonáš mě? ` + (location.href.split("#")[0]);
   el.innerHTML = `<blockquote id="sq2">${esc(txt)}</blockquote><button class="btn-main" id="cp">Zkopírovat výzvu</button>
   <p class="small mute" style="margin-top:12px">Pošli kamarádům odkaz na tuhle stránku a jejich výsledek si porovnejte. Každý má svůj vlastní postup${DB ? ", tvůj se ukládá k tvému účtu." : " uložený v prohlížeči."}</p>`;
   $("#cp").onclick = async () => { try { await navigator.clipboard.writeText(txt); toast("Výzva zkopírována"); } catch (e) { const r = document.createRange(); r.selectNodeContents($("#sq2")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Text je označený, zkopíruj ho přes Ctrl+C"); } };

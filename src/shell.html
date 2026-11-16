@@ -58,6 +58,11 @@ header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper
 .lvl b{font:900 15px var(--display);font-stretch:90%;background:var(--ink);color:var(--sheet);border-radius:6px;padding:3px 8px}
 .xpbar{width:140px;height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
 .xpbar i{display:block;height:100%;background:var(--stamp);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.subj{display:flex;border:2px solid var(--ink);border-radius:10px;overflow:hidden}
+.subj button{border:0;border-radius:0;padding:6px 12px;font-size:14px;display:flex;gap:6px;align-items:baseline;background:var(--sheet)}
+.subj button small{font-size:12px;color:var(--mute);font-weight:400}
+.subj button[aria-selected="true"]{background:var(--ink);color:var(--sheet)}
+.subj button[aria-selected="true"] small{color:inherit;opacity:.75}
 .stat{font-size:14px;color:var(--mute);white-space:nowrap}.stat b{color:var(--ink)}
 @media(max-width:720px){.hud{gap:12px;flex-wrap:wrap}.xpbar{width:70px}.hide-s{display:none}}
 
