@@ -9,7 +9,8 @@ const ICON = {
   review: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/>',
   boss: '<circle cx="5.5" cy="9" r="2.3"/><circle cx="12" cy="6.8" r="2.6"/><circle cx="18.5" cy="9" r="2.3"/><path d="M1.8 19c.3-3.2 1.8-5 3.7-5s3.2 1.4 3.6 3.6M8.3 19.5c.4-4 1.8-6.2 3.7-6.2s3.3 2.2 3.7 6.2M14.9 17.6c.4-2.2 1.7-3.6 3.6-3.6s3.4 1.8 3.7 5"/>',
 };
-const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const MCOL = { boss: "violet", daily: "yellow", quiz: "blue", review: "pink", cards: "green", match: "orange", speed: "yellow", order: "blue" };
+const icon = k => `<span class="ic" style="--c:var(--m-${MCOL[k]})"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg></span>`;
 function hash(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
 function stampSVG(a, got) {
   const id = "sp" + hash(a[0] + a[2]) + (got ? "g" : "");
@@ -52,11 +53,12 @@ function faceSVG(k, won) {
 function renderHUD() {
   const L = lvl(S.xp);
   $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
-  <div class="lvl"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar" title="${L.cur} z ${L.need} XP do dalšího levelu"><i style="width:${L.cur / L.need * 100}%"></i></div></div>
+  <button class="lvl" id="idxbtn" title="Otevřít index: ${L.cur} z ${L.need} XP do dalšího levelu" aria-label="Otevřít index, level ${L.n}"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar"><i style="width:${L.cur / L.need * 100}%"></i></div></button>
   <span class="stat num"><b>${S.streak}</b> ${S.streak === 1 ? "den" : S.streak >= 2 && S.streak <= 4 ? "dny" : "dní"} v řadě</span>
   <div class="subj" role="tablist" aria-label="Předmět">${SUBJ.map(s => `<button role="tab" aria-selected="${s.id === S.subj}" data-subj="${s.id}" title="${esc(s.full)}">${s.name}<small class="num">${subjMastery(s.id)} %</small></button>`).join("")}</div>`;
   $("#hud").querySelectorAll("[data-subj]").forEach(b => b.onclick = () => { if (S.subj === b.dataset.subj && $(".hero")) return; S.subj = b.dataset.subj; save(); renderHUD(); go(home); });
   $("#homebtn").onclick = () => go(home);
+  $("#idxbtn").onclick = () => go(indexScreen);
 }
 const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); return `<div class="stub">${c.n}<small>okruh</small></div><div class="body"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${m}%"></i></div><span class="num">${m} %</span></div></div>${extra}`; };
 const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
@@ -91,18 +93,35 @@ function home(anim = true) {
   </section>
   <section>
     <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
-    <div class="grid-tk">${subjCh().map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
+    <div class="groups">${GROUPS[S.subj].map((g, gi) => { const all = g[1].every(id => S.sel.includes(id)); return `<div class="grp" style="--n:${g[1].length};--c:var(--m-${HLS[gi % HLS.length]})">
+      <div class="ghead"><h3><span class="gname">${esc(g[0])}</span></h3><span class="small mute num">${grpMastery(g[1])} %</span><button class="back" data-grp="${gi}" aria-pressed="${all}">${all ? "Zrušit blok" : "Vybrat blok"}</button></div>
+      <div class="grid-tk">${g[1].map(id => { const c = CHMAP[id], m = mastery(id), on = S.sel.includes(id); return `<div class="tk${on ? " on" : ""}${m === 1 ? " done" : m > 0 ? " started" : ""}"><button class="stub" data-sel="${id}" aria-pressed="${on}" aria-label="Vybrat okruh ${c.n} do her">${c.n}<small>okruh</small></button><div class="body" data-ch="${id}" role="button" tabindex="0"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${Math.round(m * 100)}%"></i></div><span class="num">${Math.round(m * 100)} %</span></div></div>${m === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : ""}</div>`; }).join("")}</div></div>`; }).join("")}</div>
   </section>
-  <section class="twocol">
-    <div><div class="sec-head"><h2>Index</h2><span class="small mute num">${Object.keys(S.ach).length} z ${ACH.length} razítek</span></div>
-      <div class="stamps">${ACH.map(a => `<div class="st ${S.ach[a[0]] ? "got" : ""}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
-    <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
+  <section class="idxstrip">
+    <div class="mini">${(() => { const got = ACH.filter(a => S.ach[a[0]]).sort((a, b) => S.ach[b[0]] - S.ach[a[0]]).slice(0, 5); return got.length ? got.map(a => `<span class="st got" title="${esc(a[2])}">${stampSVG(a, true)}</span>`).join("") : '<span class="mute">Zatím žádné razítko. První dostaneš za dokončený kvíz.</span>'; })()}</div>
+    <div class="idxtxt"><b class="num">${Object.keys(S.ach).length} z ${ACH.length} razítek v indexu</b><span class="small mute">V indexu najdeš i své statistiky a výzvu pro kamarády.</span></div>
+    <button class="btn-main" id="openidx">Otevřít index</button>
   </section>`;
+  $("#openidx").onclick = () => go(indexScreen);
+  app.querySelectorAll("[data-grp]").forEach(b => b.onclick = () => { const ids = GROUPS[S.subj][+b.dataset.grp][1]; const all = ids.every(id => S.sel.includes(id)); S.sel = all ? S.sel.filter(id => !ids.includes(id)) : [...new Set([...S.sel, ...ids])]; save(); const y = scrollY; home(false); scrollTo(0, y); });
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (b.getAttribute("aria-disabled")) return toast("Zatím tu nic není. Chyby z kvízů se sem ukládají samy."); go(MODES[b.dataset.mode].bind(null, ids)); });
   const fan = $("#fan"), hero = $(".hero"); if (fan && !RM.matches) { hero.onpointermove = e => { const r = hero.getBoundingClientRect(); fan.style.setProperty("--tilt", ((e.clientX - r.left) / r.width - .5).toFixed(3)); }; hero.onpointerleave = () => fan.style.setProperty("--tilt", 0); }
   app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
   app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(false); scrollTo(0, y); });
   const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(false); scrollTo(0, y); };
+}
+
+function indexScreen() {
+  const L = lvl(S.xp), n = Object.keys(S.ach).length;
+  const st = [["Level", L.n + " · " + L.title], ["XP celkem", S.xp], ["Dní v řadě", S.streak], ["Software", subjMastery("sw") + " %"], ["Hardware", subjMastery("hw") + " %"], ["Rekord v Bleskovce", S.stats.bestSpeed], ["Nejdelší série", S.stats.bestCombo], ["Komise přesvědčena", S.stats.bosses + "×"]];
+  app.innerHTML = `<button class="back">← Přehled</button>
+  <div class="chead"><div class="n">${n}</div><div><h1 style="font-size:clamp(32px,5vw,54px)">Index</h1><p class="mute num" style="margin-top:8px">${n} z ${ACH.length} razítek, do dalšího levelu zbývá ${L.need - L.cur} XP</p></div></div>
+  <dl class="stats">${st.map(s => `<div><dt>${s[0]}</dt><dd class="num">${esc(s[1])}</dd></div>`).join("")}</dl>
+  <section class="twocol">
+    <div><div class="sec-head"><h2>Razítka</h2></div><div class="stamps">${ACH.map((a, k) => `<div class="st ${S.ach[a[0]] ? "got" : ""}" style="--k:${k}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
+    <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
+  </section>`;
+  $(".back").onclick = () => go(home);
   renderLB();
 }
 

@@ -5,6 +5,11 @@ const SUBJ = [
 SUBJ.forEach(s => s.ch.forEach(c => c.subj = s.id));
 const CH = SUBJ.flatMap(s => s.ch);
 const CHMAP = Object.fromEntries(CH.map(c => [c.id, c]));
+const HLS = ["yellow", "blue", "pink", "green", "orange", "violet"];
+const GROUPS = {
+  sw: [["Programovací paradigmata", ["fp", "lp"]], ["Databáze", ["db", "er"]], ["Softwarové inženýrství", ["bpm", "oop", "agile", "agent"]], ["Web a architektura", ["ioc", "rest", "web", "mvc"]], ["Algoritmy a grafy", ["sort", "search", "graph", "dist"]], ["Počítačová grafika", ["cg", "rast", "scene", "img"]], ["Umělá inteligence", ["ai1", "ai2"]]],
+  hw: [["Hardware počítače", ["h-zpp", "h-mp", "h-arch", "h-mem"]], ["Operační systémy", ["h-os", "h-fs", "h-win", "h-lin"]], ["Počítačové sítě", ["h-osi", "h-net"]], ["Internet věcí", ["h-iot", "h-iotsec"]], ["Programování a data", ["h-oop", "h-om", "h-data", "h-ds"]], ["Aplikace a web", ["h-netapp", "h-ui", "h-web"]]],
+};
 const $ = (s, el = document) => el.querySelector(s);
 const app = $("#app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -53,6 +58,7 @@ function record(q, right) { if (right) { S.done[q.id] = 1; delete S.miss[q.id]; 
 function missItems() { return Object.keys(S.miss).map(id => ITEM[id]).filter(x => x && CHMAP[x.ch].subj === subj().id); }
 function dailyQs() { const r = rng(today() + S.subj); const pool = subjCh().flatMap(c => ALLITEMS[c.id]).slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 10); }
 function mastery(id) { const it = ALLITEMS[id]; return it.filter(x => S.done[x.id]).length / it.length; }
+function grpMastery(ids) { let a = 0, b = 0; ids.forEach(id => { a += ALLITEMS[id].filter(x => S.done[x.id]).length; b += ALLITEMS[id].length; }); return Math.round(a / b * 100); }
 function subj() { return SUBJ.find(s => s.id === S.subj) || SUBJ[0]; }
 function subjCh() { return subj().ch; }
 function subjMastery(sid) { let a = 0, b = 0; SUBJ.find(s => s.id === sid).ch.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }

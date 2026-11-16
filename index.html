@@ -19,6 +19,7 @@
   --hl:#ffe14d;         /* zvýrazňovač */
   --pen:#d62f2f;        /* červená propiska */
   --ok:#17845a;
+  --m-yellow:#ffe14d;--m-blue:#9fd4ff;--m-pink:#ffa8d2;--m-green:#9be8ab;--m-orange:#ffc078;--m-violet:#cdb8ff;--on-hl:#18203a; /* zvýrazňovače */
   --stamp-soft:color-mix(in srgb,var(--stamp) 10%,var(--sheet));
   --display:"Archivo","Arial Narrow",system-ui,sans-serif;
   --body:"Atkinson Hyperlegible",system-ui,sans-serif;
@@ -54,7 +55,8 @@ kbd{font:700 12px var(--body);border:1.5px solid currentColor;border-radius:5px;
 header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
 .hud{max-width:1120px;margin:auto;padding:10px 20px;display:flex;align-items:center;gap:20px}
 .mark{font:900 22px var(--display);font-stretch:68%;letter-spacing:.01em;background:none;border:0;padding:0;margin-right:auto}
-.lvl{display:flex;align-items:center;gap:10px}
+.lvl{display:flex;align-items:center;gap:10px;background:none;border:0;padding:4px 6px;border-radius:8px}
+.lvl:hover{background:var(--stamp-soft)}
 .lvl b{font:900 15px var(--display);font-stretch:90%;background:var(--ink);color:var(--sheet);border-radius:6px;padding:3px 8px}
 .xpbar{width:140px;height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
 .xpbar i{display:block;height:100%;background:var(--stamp);transition:width .7s cubic-bezier(.2,.8,.2,1)}
@@ -96,10 +98,38 @@ section+section{margin-top:56px}
 .tk .m .bar{flex:1;height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
 .tk .m .bar i{display:block;height:100%;background:var(--ok)}
 .fan .tk{box-shadow:0 10px 30px -10px rgba(10,15,40,.35);border:0;padding:0;font:inherit}
-.grid-tk{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.groups{display:grid;grid-template-columns:repeat(4,1fr);gap:34px 14px}
+.grp{grid-column:span var(--n);min-width:0}
+.ghead{display:flex;align-items:baseline;gap:12px;margin-bottom:10px}
+.ghead h3{font-size:19px;margin-right:auto}
+.gname{background:var(--c);color:var(--on-hl);padding:1px 7px 2px;border-radius:4px 7px 5px 8px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.ghead>.small,.ghead .back{white-space:nowrap}
+@media(max-width:560px){.mode{grid-template-columns:46px minmax(0,1fr)}.mode .rec{grid-column:2;text-align:left!important;margin-top:-10px}}
+.ghead .back{font-size:14px;color:var(--stamp)}
+.grid-tk{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:14px}
+.grid-tk .tk{grid-template-columns:64px 1fr;--notch:9px;-webkit-mask-position:top,bottom;transition:transform .18s}
+.grid-tk .tk{-webkit-mask:radial-gradient(circle var(--notch) at 64px 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle var(--notch) at 64px 100%,#0000 98%,#000) bottom/100% 51% no-repeat;mask:radial-gradient(circle var(--notch) at 64px 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle var(--notch) at 64px 100%,#0000 98%,#000) bottom/100% 51% no-repeat}
+.grid-tk .tk .stub{font-size:34px;transition:background .25s}
+.grid-tk .tk .t{font-size:16px}
+.grid-tk .tk:not(.started):not(.done):not(.on) .stub{color:var(--mute)}
+.grid-tk .tk.started .stub{background:color-mix(in srgb,var(--c) 42%,var(--sheet))}
+.grid-tk .tk.done .stub{background:var(--c);color:var(--on-hl)}
+.grid-tk .tk.done .stub small{color:inherit;opacity:.7}
+.grid-tk .tk.done .bar i{background:var(--ok)}
+@media(max-width:940px){.groups{grid-template-columns:1fr 1fr}.grp{grid-column:span 2}.grid-tk{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.grid-tk{grid-template-columns:1fr}}
+.idxstrip{display:flex;align-items:center;gap:22px;flex-wrap:wrap;background:var(--sheet);border-radius:14px;padding:16px 22px}
+.idxstrip .mini{display:flex;gap:4px;align-items:center}
+.idxstrip .mini .st svg{width:58px;height:58px}
+.idxstrip .idxtxt{display:grid;margin-right:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:0 24px;margin:0 0 48px;border-top:2px solid var(--ink)}
+.stats div{padding:12px 0;border-bottom:1px solid var(--rule)}
+.stats dt{font-size:13.5px;color:var(--mute)}
+.stats dd{margin:0;font:800 22px var(--display);font-stretch:85%}
+#app .stamps .st.got svg{animation:stamp-in .45s calc(var(--k) * 25ms + .2s) cubic-bezier(.2,.9,.2,1) both}
 .grid-tk .tk{cursor:default}
 .grid-tk .tk .stub{cursor:pointer;border:0;border-right:2px dashed var(--rule);background:none;border-radius:0;color:inherit}
-.grid-tk .tk .stub:hover{background:var(--stamp-soft)}
+.grid-tk .tk:not(.on) .stub:hover{background:color-mix(in srgb,var(--c) 70%,var(--sheet));color:var(--on-hl)}
 .grid-tk .tk.on .stub{background:var(--stamp);color:var(--sheet)}
 .grid-tk .tk.on .stub small{color:inherit;opacity:.8}
 .grid-tk .tk .body{cursor:pointer}
@@ -108,12 +138,16 @@ section+section{margin-top:56px}
 
 /* modes */
 .modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:0 28px;border-top:2px solid var(--ink)}
-.mode{all:unset;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:16px 4px;border-bottom:1px solid var(--rule)}
-.mode svg{width:34px;height:34px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.mode{all:unset;cursor:pointer;display:grid;grid-template-columns:46px 1fr auto;gap:14px;align-items:center;padding:16px 4px;border-bottom:1px solid var(--rule)}
+.mode .ic{position:relative;width:46px;height:46px;display:grid;place-items:center}
+.mode .ic::before{content:"";position:absolute;inset:0;background:var(--c);border-radius:11px 15px 10px 14px;transform:rotate(-5deg);transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+.mode:hover .ic::before,.mode:focus-visible .ic::before{transform:rotate(4deg) scale(1.12)}
+.mode[aria-disabled] .ic::before{background:var(--rule)}
+.mode svg{position:relative;width:30px;height:30px;stroke:var(--on-hl);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
 .mode b{font:800 20px var(--display);font-stretch:85%;display:block}
 .mode span.d{font-size:14.5px;color:var(--mute)}
 .mode .rec{font-size:13px;color:var(--mute);text-align:right}
-.mode:hover svg,.mode:focus-visible svg{transform:rotate(-8deg) scale(1.12);stroke:var(--stamp)}
+.mode:hover svg,.mode:focus-visible svg{transform:rotate(-6deg) scale(1.08)}
 .mode:focus-visible{outline:3px solid var(--stamp)}
 
 /* stamps */
@@ -230,7 +264,7 @@ section+section{margin-top:56px}
 
 /* chapter */
 .chead{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:end;margin:8px 0 28px}
-.chead .n{font:900 120px/.8 var(--display);font-stretch:62%;color:var(--stamp)}
+.chead .n{pointer-events:none;font:900 120px/.8 var(--display);font-stretch:62%;color:var(--stamp)}
 .cheat{display:grid;grid-template-columns:minmax(170px,26%) 1fr;background:var(--sheet);border-radius:12px;overflow:hidden;margin:0}
 .cheat dt,.cheat dd{margin:0;padding:12px 16px;border-bottom:1px solid var(--rule)}
 .cheat dt{font:700 16px var(--display);font-stretch:90%}
@@ -262,7 +296,7 @@ header{view-transition-name:hud}
 #app:not(.still) .tk .bar i,#app:not(.still) .today .line i{transform-origin:left;animation:grow .9s .35s cubic-bezier(.2,.8,.2,1) both}
 @keyframes grow{from{transform:scaleX(0)}}
 .mode[aria-disabled]{opacity:.45;cursor:default}
-.mode[aria-disabled]:hover svg{transform:none;stroke:var(--ink)}
+.mode[aria-disabled]:hover svg,.mode[aria-disabled]:hover .ic::before{transform:rotate(-5deg)}
 .clock .pts.pop{animation:pop .3s cubic-bezier(.3,1.8,.5,1)}
 .clock .sec.hit{animation:hit .4s}
 @keyframes hit{30%{transform:translateY(6px) scale(.9);color:var(--pen)}}
@@ -1925,6 +1959,11 @@ const SUBJ = [
 SUBJ.forEach(s => s.ch.forEach(c => c.subj = s.id));
 const CH = SUBJ.flatMap(s => s.ch);
 const CHMAP = Object.fromEntries(CH.map(c => [c.id, c]));
+const HLS = ["yellow", "blue", "pink", "green", "orange", "violet"];
+const GROUPS = {
+  sw: [["Programovací paradigmata", ["fp", "lp"]], ["Databáze", ["db", "er"]], ["Softwarové inženýrství", ["bpm", "oop", "agile", "agent"]], ["Web a architektura", ["ioc", "rest", "web", "mvc"]], ["Algoritmy a grafy", ["sort", "search", "graph", "dist"]], ["Počítačová grafika", ["cg", "rast", "scene", "img"]], ["Umělá inteligence", ["ai1", "ai2"]]],
+  hw: [["Hardware počítače", ["h-zpp", "h-mp", "h-arch", "h-mem"]], ["Operační systémy", ["h-os", "h-fs", "h-win", "h-lin"]], ["Počítačové sítě", ["h-osi", "h-net"]], ["Internet věcí", ["h-iot", "h-iotsec"]], ["Programování a data", ["h-oop", "h-om", "h-data", "h-ds"]], ["Aplikace a web", ["h-netapp", "h-ui", "h-web"]]],
+};
 const $ = (s, el = document) => el.querySelector(s);
 const app = $("#app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -1973,6 +2012,7 @@ function record(q, right) { if (right) { S.done[q.id] = 1; delete S.miss[q.id]; 
 function missItems() { return Object.keys(S.miss).map(id => ITEM[id]).filter(x => x && CHMAP[x.ch].subj === subj().id); }
 function dailyQs() { const r = rng(today() + S.subj); const pool = subjCh().flatMap(c => ALLITEMS[c.id]).slice(); for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 10); }
 function mastery(id) { const it = ALLITEMS[id]; return it.filter(x => S.done[x.id]).length / it.length; }
+function grpMastery(ids) { let a = 0, b = 0; ids.forEach(id => { a += ALLITEMS[id].filter(x => S.done[x.id]).length; b += ALLITEMS[id].length; }); return Math.round(a / b * 100); }
 function subj() { return SUBJ.find(s => s.id === S.subj) || SUBJ[0]; }
 function subjCh() { return subj().ch; }
 function subjMastery(sid) { let a = 0, b = 0; SUBJ.find(s => s.id === sid).ch.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
@@ -2038,7 +2078,8 @@ const ICON = {
   review: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/>',
   boss: '<circle cx="5.5" cy="9" r="2.3"/><circle cx="12" cy="6.8" r="2.6"/><circle cx="18.5" cy="9" r="2.3"/><path d="M1.8 19c.3-3.2 1.8-5 3.7-5s3.2 1.4 3.6 3.6M8.3 19.5c.4-4 1.8-6.2 3.7-6.2s3.3 2.2 3.7 6.2M14.9 17.6c.4-2.2 1.7-3.6 3.6-3.6s3.4 1.8 3.7 5"/>',
 };
-const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+const MCOL = { boss: "violet", daily: "yellow", quiz: "blue", review: "pink", cards: "green", match: "orange", speed: "yellow", order: "blue" };
+const icon = k => `<span class="ic" style="--c:var(--m-${MCOL[k]})"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg></span>`;
 function hash(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
 function stampSVG(a, got) {
   const id = "sp" + hash(a[0] + a[2]) + (got ? "g" : "");
@@ -2081,11 +2122,12 @@ function faceSVG(k, won) {
 function renderHUD() {
   const L = lvl(S.xp);
   $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
-  <div class="lvl"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar" title="${L.cur} z ${L.need} XP do dalšího levelu"><i style="width:${L.cur / L.need * 100}%"></i></div></div>
+  <button class="lvl" id="idxbtn" title="Otevřít index: ${L.cur} z ${L.need} XP do dalšího levelu" aria-label="Otevřít index, level ${L.n}"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar"><i style="width:${L.cur / L.need * 100}%"></i></div></button>
   <span class="stat num"><b>${S.streak}</b> ${S.streak === 1 ? "den" : S.streak >= 2 && S.streak <= 4 ? "dny" : "dní"} v řadě</span>
   <div class="subj" role="tablist" aria-label="Předmět">${SUBJ.map(s => `<button role="tab" aria-selected="${s.id === S.subj}" data-subj="${s.id}" title="${esc(s.full)}">${s.name}<small class="num">${subjMastery(s.id)} %</small></button>`).join("")}</div>`;
   $("#hud").querySelectorAll("[data-subj]").forEach(b => b.onclick = () => { if (S.subj === b.dataset.subj && $(".hero")) return; S.subj = b.dataset.subj; save(); renderHUD(); go(home); });
   $("#homebtn").onclick = () => go(home);
+  $("#idxbtn").onclick = () => go(indexScreen);
 }
 const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); return `<div class="stub">${c.n}<small>okruh</small></div><div class="body"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${m}%"></i></div><span class="num">${m} %</span></div></div>${extra}`; };
 const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
@@ -2120,18 +2162,35 @@ function home(anim = true) {
   </section>
   <section>
     <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
-    <div class="grid-tk">${subjCh().map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
+    <div class="groups">${GROUPS[S.subj].map((g, gi) => { const all = g[1].every(id => S.sel.includes(id)); return `<div class="grp" style="--n:${g[1].length};--c:var(--m-${HLS[gi % HLS.length]})">
+      <div class="ghead"><h3><span class="gname">${esc(g[0])}</span></h3><span class="small mute num">${grpMastery(g[1])} %</span><button class="back" data-grp="${gi}" aria-pressed="${all}">${all ? "Zrušit blok" : "Vybrat blok"}</button></div>
+      <div class="grid-tk">${g[1].map(id => { const c = CHMAP[id], m = mastery(id), on = S.sel.includes(id); return `<div class="tk${on ? " on" : ""}${m === 1 ? " done" : m > 0 ? " started" : ""}"><button class="stub" data-sel="${id}" aria-pressed="${on}" aria-label="Vybrat okruh ${c.n} do her">${c.n}<small>okruh</small></button><div class="body" data-ch="${id}" role="button" tabindex="0"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${Math.round(m * 100)}%"></i></div><span class="num">${Math.round(m * 100)} %</span></div></div>${m === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : ""}</div>`; }).join("")}</div></div>`; }).join("")}</div>
   </section>
-  <section class="twocol">
-    <div><div class="sec-head"><h2>Index</h2><span class="small mute num">${Object.keys(S.ach).length} z ${ACH.length} razítek</span></div>
-      <div class="stamps">${ACH.map(a => `<div class="st ${S.ach[a[0]] ? "got" : ""}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
-    <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
+  <section class="idxstrip">
+    <div class="mini">${(() => { const got = ACH.filter(a => S.ach[a[0]]).sort((a, b) => S.ach[b[0]] - S.ach[a[0]]).slice(0, 5); return got.length ? got.map(a => `<span class="st got" title="${esc(a[2])}">${stampSVG(a, true)}</span>`).join("") : '<span class="mute">Zatím žádné razítko. První dostaneš za dokončený kvíz.</span>'; })()}</div>
+    <div class="idxtxt"><b class="num">${Object.keys(S.ach).length} z ${ACH.length} razítek v indexu</b><span class="small mute">V indexu najdeš i své statistiky a výzvu pro kamarády.</span></div>
+    <button class="btn-main" id="openidx">Otevřít index</button>
   </section>`;
+  $("#openidx").onclick = () => go(indexScreen);
+  app.querySelectorAll("[data-grp]").forEach(b => b.onclick = () => { const ids = GROUPS[S.subj][+b.dataset.grp][1]; const all = ids.every(id => S.sel.includes(id)); S.sel = all ? S.sel.filter(id => !ids.includes(id)) : [...new Set([...S.sel, ...ids])]; save(); const y = scrollY; home(false); scrollTo(0, y); });
   app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (b.getAttribute("aria-disabled")) return toast("Zatím tu nic není. Chyby z kvízů se sem ukládají samy."); go(MODES[b.dataset.mode].bind(null, ids)); });
   const fan = $("#fan"), hero = $(".hero"); if (fan && !RM.matches) { hero.onpointermove = e => { const r = hero.getBoundingClientRect(); fan.style.setProperty("--tilt", ((e.clientX - r.left) / r.width - .5).toFixed(3)); }; hero.onpointerleave = () => fan.style.setProperty("--tilt", 0); }
   app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
   app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(false); scrollTo(0, y); });
   const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(false); scrollTo(0, y); };
+}
+
+function indexScreen() {
+  const L = lvl(S.xp), n = Object.keys(S.ach).length;
+  const st = [["Level", L.n + " · " + L.title], ["XP celkem", S.xp], ["Dní v řadě", S.streak], ["Software", subjMastery("sw") + " %"], ["Hardware", subjMastery("hw") + " %"], ["Rekord v Bleskovce", S.stats.bestSpeed], ["Nejdelší série", S.stats.bestCombo], ["Komise přesvědčena", S.stats.bosses + "×"]];
+  app.innerHTML = `<button class="back">← Přehled</button>
+  <div class="chead"><div class="n">${n}</div><div><h1 style="font-size:clamp(32px,5vw,54px)">Index</h1><p class="mute num" style="margin-top:8px">${n} z ${ACH.length} razítek, do dalšího levelu zbývá ${L.need - L.cur} XP</p></div></div>
+  <dl class="stats">${st.map(s => `<div><dt>${s[0]}</dt><dd class="num">${esc(s[1])}</dd></div>`).join("")}</dl>
+  <section class="twocol">
+    <div><div class="sec-head"><h2>Razítka</h2></div><div class="stamps">${ACH.map((a, k) => `<div class="st ${S.ach[a[0]] ? "got" : ""}" style="--k:${k}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
+    <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
+  </section>`;
+  $(".back").onclick = () => go(home);
   renderLB();
 }
 
