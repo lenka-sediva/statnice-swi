@@ -322,7 +322,7 @@ function boss(ids, back = home) {
       const ans = b => {
         if (done) return; done = true; const r = mark(bs, b, q); record(q, r); $(".board").classList.add(r ? "nod" : "frown");
         if (r) { conv = Math.min(100, conv + step); $("#cv").style.width = conv + "%"; $("#cvn").textContent = Math.round(conv) + " %"; app.querySelectorAll(".seat").forEach((s, k) => { if (conv >= (k + 1) * 33.3 - .5) { s.classList.add("won"); s.querySelector(".cface").classList.add("won"); s.querySelector("span").textContent = "Přesvědčen"; } }); }
-        else { wrongs.push(q); lives--; app.querySelectorAll(".tries i").forEach((t, k) => t.classList.toggle("lost", k >= lives)); document.body.classList.add("ouch"); setTimeout(() => document.body.classList.remove("ouch"), 360); }
+        else { wrongs.push(q); lives--; app.querySelectorAll(".tries i").forEach((t, k) => t.classList.toggle("lost", k >= lives)); }
         save();
         $("#fb").innerHTML = fbHTML(q, b, r, "Komise přikyvuje.", `<button class="btn-main" id="nx">Pokračovat<kbd>Enter</kbd></button>`);
         $("#nx").onclick = next; $("#nx").focus({ preventScroll: true });
