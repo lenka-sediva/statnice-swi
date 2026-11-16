@@ -10,7 +10,9 @@ Ke každé otázce je vysvětlení.
 ## Herní režimy
 
 - **Státnice nanečisto** – vylosuj dva okruhy a přesvědč komisi (12 otázek, 3 pokusy na chybu)
+- **Denní výzva** – 10 otázek, každý den stejných pro všechny; výsledek jde zkopírovat a poslat kamarádům
 - **Kvíz** – 10 otázek, série správných odpovědí zvyšuje body
+- **Opakování chyb** – otázky, na které jsi naposledy odpověděl(a) špatně; po správné odpovědi ze seznamu zmizí
 - **Kartičky** – pojem a definice, co neumíš, uvidíš příště dřív
 - **Přiřazovačka** – spoj šest pojmů s definicemi na čas
 - **Bleskovka** – 60 sekund, chyba stojí 3 sekundy

@@ -5,6 +5,8 @@ const ICON = {
   match: '<circle cx="5.5" cy="6" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="6" r="2.2"/><path d="M7.7 6.4c5 1 3.6 10.2 8.6 11.2M7.7 17.6l8.6-11.2" stroke-dasharray="0"/>',
   speed: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M10 2.5h4M18.5 6.5l1.5-1.5"/>',
   order: '<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v4M3.8 11.2a1.4 1.4 0 0 1 2.6.8L4 14.5h2.6M4 17h2.2l-1.2 1.6a1.2 1.2 0 1 1-1.1 1.6"/>',
+  daily: '<rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/>',
+  review: '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8.5M20 4v4.5h-4.5M20 12a8 8 0 0 1-13.7 5.6L4 15.5M4 20v-4.5h4.5"/>',
   boss: '<circle cx="5.5" cy="9" r="2.3"/><circle cx="12" cy="6.8" r="2.6"/><circle cx="18.5" cy="9" r="2.3"/><path d="M1.8 19c.3-3.2 1.8-5 3.7-5s3.2 1.4 3.6 3.6M8.3 19.5c.4-4 1.8-6.2 3.7-6.2s3.3 2.2 3.7 6.2M14.9 17.6c.4-2.2 1.7-3.6 3.6-3.6s3.4 1.8 3.7 5"/>',
 };
 const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
@@ -35,7 +37,18 @@ function toast(html) { const t = document.createElement("div"); t.className = "t
 function floatXP(n, el) { if (!el) return; const r = el.getBoundingClientRect(); const f = document.createElement("div"); f.className = "fxp"; f.textContent = "+" + n; f.style.left = r.right - 60 + "px"; f.style.top = r.top - 6 + "px"; document.body.appendChild(f); setTimeout(() => f.remove(), 950); }
 let timers = [];
 function clearTimers() { timers.forEach(t => clearInterval(t)); timers = []; document.onkeydown = null; }
-function go(fn) { clearTimers(); window.scrollTo(0, 0); fn(); }
+const RM = matchMedia("(prefers-reduced-motion: reduce)");
+function go(fn) {
+  clearTimers();
+  const run = () => { app.classList.remove("still"); window.scrollTo(0, 0); fn(); };
+  if (document.startViewTransition && !RM.matches) document.startViewTransition(run); else run();
+}
+async function copyText(txt, okMsg) { try { await navigator.clipboard.writeText(txt); toast(okMsg); } catch (e) { toast("Kopírování se nepovedlo, označ text ručně"); } }
+function countUp(el, to, rest) { if (RM.matches || !to) return; const t0 = performance.now(), dur = 500 + Math.min(to, 30) * 20; const f = t => { const p = Math.min(1, (t - t0) / dur); el.textContent = Math.round(to * (1 - Math.pow(1 - p, 3))) + rest; if (p < 1) requestAnimationFrame(f); }; el.textContent = "0" + rest; requestAnimationFrame(f); }
+function faceSVG(k, won) {
+  const extra = ['<circle cx="17" cy="21" r="5.5"/><circle cx="31" cy="21" r="5.5"/><path d="M22.5 21h3"/>', '<path d="M12 12c4-6 20-6 24 0"/>', '<path d="M14 10c2-5 6-6 10-3 4-3 8-2 10 3"/>'][k];
+  return `<svg class="cface${won ? " won" : ""}" viewBox="0 0 48 48" aria-hidden="true" style="--bd:${k * 1.3}s"><circle cx="24" cy="24" r="19"/>${extra}<path class="brow bl" d="M13 14.5l7-1"/><path class="brow br" d="M28 13.5l7 1"/><ellipse class="eye" cx="17" cy="21" rx="1.6" ry="2.2"/><ellipse class="eye" cx="31" cy="21" rx="1.6" ry="2.2"/><path class="mouth m0" d="M18 32h12"/><path class="mouth m1" d="M17 30c3 5 11 5 14 0"/><path class="mouth m2" d="M18 34c3-4 9-4 12 0"/></svg>`;
+}
 function renderHUD() {
   const L = lvl(S.xp);
   $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
@@ -49,30 +62,32 @@ const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); r
 const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
 
 /* ---------- HOME ---------- */
-function home() {
+function home(anim = true) {
+  app.classList.toggle("still", !anim);
   const d = today(); const dayXP = S.dayDate === d ? S.dayXP : 0; const goal = 100;
-  const weak = subjCh().slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
-  const fanPos = [[-13, 26, -150], [-6.5, 8, -75], [0, 0, 0], [6.5, 8, 75], [13, 26, 150]];
+  const weak = subjCh().slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 4);
+  const fanPos = [[-4, -132, -30], [3, -44, 28], [-2.5, 44, -20], [3.5, 132, 30]];
   const ids = selIds();
   const total = subjCh().reduce((a, c) => a + ALLITEMS[c.id].length, 0);
-  const rec = { quiz: S.stats.quizzes + "× odehráno", cards: S.stats.cards + " kartiček", match: S.stats.matches + "× spojeno", speed: "rekord " + S.stats.bestSpeed, order: S.stats.orders + "× seřazeno", boss: S.stats.bosses + "× přesvědčena" };
-  const M = [["boss", "Státnice nanečisto", "Vylosuj dva okruhy a přesvědč komisi"], ["quiz", "Kvíz", "Deset otázek, série zvyšuje body"], ["cards", "Kartičky", "Co neumíš, uvidíš příště dřív"], ["match", "Přiřazovačka", "Spoj šest pojmů s definicemi"], ["speed", "Bleskovka", "60 sekund, chyba stojí 3 sekundy"], ["order", "Seřaď postup", "Fáze, cykly a kroky algoritmů"]];
+  const nMiss = missItems().length; const dl = S.daily && S.daily.date === d ? S.daily[S.subj] : null;
+  const rec = { daily: dl != null ? "dnes " + dl + "/10" : "stejná pro všechny", review: nMiss ? nMiss + " " + plural(nMiss, "otázka čeká", "otázky čekají", "otázek čeká") : "žádné chyby", quiz: S.stats.quizzes + "× odehráno", cards: S.stats.cards + " kartiček", match: S.stats.matches + "× spojeno", speed: "rekord " + S.stats.bestSpeed, order: S.stats.orders + "× seřazeno", boss: S.stats.bosses + "× přesvědčena" };
+  const M = [["boss", "Státnice nanečisto", "Vylosuj dva okruhy a přesvědč komisi"], ["daily", "Denní výzva", "Deset otázek, každý den stejných pro všechny"], ["quiz", "Kvíz", "Deset otázek, série zvyšuje body"], ["review", "Opakování chyb", "Otázky, které jsi naposledy neuměl(a)"], ["cards", "Kartičky", "Co neumíš, uvidíš příště dřív"], ["match", "Přiřazovačka", "Spoj šest pojmů s definicemi"], ["speed", "Bleskovka", "60 sekund, chyba stojí 3 sekundy"], ["order", "Seřaď postup", "Fáze, cykly a kroky algoritmů"]];
   app.innerHTML = `
   <section class="hero">
     <div>
       <h1${S.subj === "hw" ? ' style="font-size:clamp(36px,5vw,62px)"' : ""}>${S.subj === "hw" ? "Státnice z Technických a softwarových prostředků" : "Státnice ze Softwarového inženýrství"}</h1>
-      <p class="lead">${subjCh().length} okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
-      <div class="acts"><button class="btn-main" data-mode="boss">Vylosovat okruhy</button><button class="btn-ghost" data-mode="quiz">Rychlý kvíz</button></div>
+      <p class="lead">${subjCh().length} okruhů a ${total} otázek z poznámek ke státnicím. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
+      <div class="acts"><button class="btn-main" data-mode="boss">Vylosovat okruhy</button>${dl == null ? '<button class="btn-ghost" data-mode="daily">Denní výzva</button>' : nMiss ? '<button class="btn-ghost" data-mode="review">Opravit chyby</button>' : '<button class="btn-ghost" data-mode="quiz">Rychlý kvíz</button>'}</div>
       <div class="today"><div class="small"><b class="num">${Math.min(dayXP, goal)} / ${goal} XP</b> <span class="mute">dnešní cíl${dayXP >= goal ? " splněn" : ""}</span></div><div class="line"><i style="width:${Math.min(dayXP / goal, 1) * 100}%"></i></div></div>
     </div>
     <div>
-      <div class="fan">${weak.map((c, i) => `<button class="tk" style="--i:${i};--r:${fanPos[i][0]}deg;--y:${fanPos[i][1]}px;--x:${fanPos[i][2]}px" data-ch="${c.id}" aria-label="Otevřít okruh ${c.n}: ${esc(c.title)}">${ticket(c)}</button>`).join("")}</div>
+      <div class="fan" id="fan">${weak.map((c, i) => `<button class="tk" style="--i:${i};--r:${fanPos[i][0]}deg;--y:${fanPos[i][1]}px;--x:${fanPos[i][2]}px" data-ch="${c.id}" aria-label="Otevřít okruh ${c.n}: ${esc(c.title)}">${ticket(c)}</button>`).join("")}</div>
       <p class="small mute" style="text-align:center">Okruhy, které máš zatím nejméně zvládnuté</p>
     </div>
   </section>
   <section>
     <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${curSel().length ? `Hraješ z ${curSel().length} ${plural(curSel().length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
-    <div class="modes">${M.map(m => `<button class="mode" data-mode="${m[0]}">${icon(m[0])}<span><b>${m[1]}</b><span class="d">${m[2]}</span></span><span class="rec num">${rec[m[0]]}</span></button>`).join("")}</div>
+    <div class="modes">${M.map(m => `<button class="mode" data-mode="${m[0]}"${m[0] === "review" && !nMiss ? ' aria-disabled="true"' : ""}>${icon(m[0])}<span><b>${m[1]}</b><span class="d">${m[2]}</span></span><span class="rec num">${rec[m[0]]}</span></button>`).join("")}</div>
   </section>
   <section>
     <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
@@ -83,10 +98,11 @@ function home() {
       <div class="stamps">${ACH.map(a => `<div class="st ${S.ach[a[0]] ? "got" : ""}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
     <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
   </section>`;
-  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => go(MODES[b.dataset.mode].bind(null, ids)));
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => { if (b.getAttribute("aria-disabled")) return toast("Zatím tu nic není. Chyby z kvízů se sem ukládají samy."); go(MODES[b.dataset.mode].bind(null, ids)); });
+  const fan = $("#fan"), hero = $(".hero"); if (fan && !RM.matches) { hero.onpointermove = e => { const r = hero.getBoundingClientRect(); fan.style.setProperty("--tilt", ((e.clientX - r.left) / r.width - .5).toFixed(3)); }; hero.onpointerleave = () => fan.style.setProperty("--tilt", 0); }
   app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
-  app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(); scrollTo(0, y); });
-  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(); scrollTo(0, y); };
+  app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(false); scrollTo(0, y); });
+  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = S.sel.filter(id => !curSel().includes(id)); save(); const y = scrollY; home(false); scrollTo(0, y); };
   renderLB();
 }
 
@@ -123,21 +139,21 @@ const stepsHTML = (n, res, cur) => `<div class="steps">${Array.from({ length: n 
 const optsFor = q => q.kind === "tf" ? ["Pravda", "Nepravda"] : shuffle([q.correct, ...q.wrong.slice(0, 3)]);
 
 /* ---------- QUIZ ---------- */
-function quiz(ids, back = home) {
-  const qs = weighted(poolFor(ids), 10); let i = 0, ok = 0, combo = 0, gained = 0; const res = [];
+function quiz(ids, back = home, o = {}) {
+  const qs = o.qs || weighted(poolFor(ids), 10); let i = 0, ok = 0, combo = 0, gained = 0; const res = [], wrongs = [];
   function show() {
     if (i >= qs.length) return end();
     const q = qs[i];
-    app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="combo" id="cb">${combo >= 2 ? "série " + combo : ""}</span><span class="small mute num">${i + 1} / ${qs.length}</span></div>
-    ${stepsHTML(qs.length, res, i)}<div class="sheet">${qHTML(q, optsFor(q))}</div></div>`;
+    app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="combo" id="cb">${combo >= 2 ? "série " + combo : ""}</span><span class="small mute num">${o.label ? esc(o.label) + " · " : ""}${i + 1} / ${qs.length}</span></div>
+    ${stepsHTML(qs.length, res, i)}<div class="sheet in">${qHTML(q, optsFor(q))}</div></div>`;
     $(".back").onclick = () => go(back);
     const btns = [...app.querySelectorAll(".opt")]; let answered = false;
     const next = () => { i++; show(); };
     const answer = b => {
       if (answered) return; answered = true;
-      const right = mark(btns, b, q); res[i] = right;
-      if (right) { ok++; combo++; S.done[q.id] = 1; const x = 10 + Math.min(combo - 1, 5) * 2; gained += x; addXP(x); floatXP(x, b); S.stats.bestCombo = Math.max(S.stats.bestCombo, combo); if (combo >= 5) unlock("combo5"); if (combo >= 15) unlock("combo15"); if (combo >= 2) { const cb = $("#cb"); cb.textContent = "série " + combo; cb.classList.remove("pop"); void cb.offsetWidth; cb.classList.add("pop"); } }
-      else { combo = 0; $("#cb").textContent = ""; delete S.done[q.id]; save(); }
+      const right = mark(btns, b, q); res[i] = right; record(q, right);
+      if (right) { ok++; combo++; const x = 10 + Math.min(combo - 1, 5) * 2; gained += x; addXP(x); floatXP(x, b); S.stats.bestCombo = Math.max(S.stats.bestCombo, combo); if (combo >= 5) unlock("combo5"); if (combo >= 15) unlock("combo15"); if (combo >= 2) { const cb = $("#cb"); cb.textContent = "série " + combo; cb.classList.remove("pop"); void cb.offsetWidth; cb.classList.add("pop"); } }
+      else { combo = 0; $("#cb").textContent = ""; wrongs.push(q); save(); }
       app.querySelectorAll(".steps i")[i].className = right ? "ok" : "no";
       $("#fb").innerHTML = fbHTML(q, b, right, "Správně.", `<button class="btn-main" id="nx">${i + 1 < qs.length ? "Další otázka" : "Zobrazit výsledek"}<kbd>Enter</kbd></button>`);
       $("#nx").onclick = next; $("#nx").focus({ preventScroll: true });
@@ -148,15 +164,35 @@ function quiz(ids, back = home) {
   function end() {
     document.onkeydown = null; S.stats.quizzes++; unlock("first");
     const pct = Math.round(ok / qs.length * 100); let bonus = 0;
-    if (pct === 100) { bonus = 30; S.stats.perfect++; unlock("perfect"); }
+    if (pct === 100 && qs.length >= 10) { bonus = 30; S.stats.perfect++; unlock("perfect"); }
     if (bonus) addXP(bonus); else save();
-    result(`${ok}/${qs.length}`, pct >= 80 ? "Tohle by komise vzala." : pct >= 50 ? "Solidní základ, ještě kousek." : "Projdi si tahák a zkus to znovu.", `Získáno ${gained + bonus} XP${bonus ? ", z toho 30 za kvíz bez chyby" : ""}.`, () => quiz(ids, back), back);
+    const x = o.done ? o.done(ok, res) : {};
+    result(`${ok}/${qs.length}`, x.h || (pct >= 80 ? "Tohle by komise vzala." : pct >= 50 ? "Solidní základ, ještě kousek." : "Projdi si tahák a zkus to znovu."), (x.p ? x.p + " " : "") + `Získáno ${gained + bonus + (x.xp || 0)} XP${bonus ? ", z toho 30 za kvíz bez chyby" : ""}.`, o.again || (() => quiz(ids, back)), back, { wrongs, share: x.share });
   }
   show();
 }
-function result(big, h, p, again, back) {
-  app.innerHTML = `<div class="result"><div class="score num">${big}</div><h2>${esc(h)}</h2><p class="mute" style="margin-top:8px">${p}</p><div class="acts"><button class="btn-main" id="ag">Hrát znovu</button><button class="btn-ghost" id="bk">Zpět</button></div></div>`;
+function review(ids, back = home) {
+  const pool = missItems(); if (!pool.length) return home();
+  quiz(ids, back, { qs: shuffle(pool).slice(0, 10), label: "Opakování chyb", again: () => review(ids, back), done: () => { const left = missItems().length; if (!left) unlock("fixed"); return { h: left ? `Ještě ${left} ${plural(left, "chyba čeká", "chyby čekají", "chyb čeká")} na opravu.` : "Všechny chyby jsou opravené." }; } });
+}
+function daily(ids, back = home) {
+  const d = today(), cz = new Date().getDate() + ". " + (new Date().getMonth() + 1) + ".";
+  quiz(ids, back, { qs: dailyQs(), label: "Denní výzva " + cz, again: () => daily(ids, back), done: (ok, res) => {
+    if (!S.daily || S.daily.date !== d) S.daily = { date: d };
+    const first = S.daily[S.subj] == null; let xp = 0;
+    if (first) { S.daily[S.subj] = ok; S.daily[S.subj + "r"] = res.map(r => r ? "🟩" : "🟥").join(""); xp = 20; unlock("daily"); addXP(xp); }
+    return { xp, h: first ? "Denní výzva splněna." : "Trénink navíc.", p: first ? "Pošli výsledek kamarádům, mají dnes stejné otázky." : `Do výsledku se počítá první pokus (${S.daily[S.subj]}/10).`, share: `Státnice SWI, denní výzva ${cz} (${subj().name}): ${S.daily[S.subj]}/10\n${S.daily[S.subj + "r"]}\n${location.href.split("#")[0]}` };
+  } });
+}
+function result(big, h, p, again, back, x = {}) {
+  const w = [...new Set(x.wrongs || [])].slice(0, 12);
+  app.innerHTML = `<div class="result"><div class="score num${x.stamp ? " stamped " + x.stamp : ""}" id="big">${big}</div><h2><span class="swipe">${esc(h)}</span></h2><p class="mute" style="margin-top:8px">${p}</p>
+  <div class="acts"><button class="btn-main" id="ag">Hrát znovu</button>${x.share ? '<button class="btn-ghost" id="sh">Zkopírovat výsledek</button>' : ""}${w.length && again !== null ? '<button class="btn-ghost" id="rv">Opravit chyby hned</button>' : ""}<button class="btn-ghost" id="bk">Zpět</button></div>
+  ${w.length ? `<section class="recap"><h3>Co si zopakovat</h3><ol>${w.map((q, k) => `<li style="--k:${k}"><span class="rq">${esc(q.prompt)}</span><span class="ra">${esc(q.correct)}</span>${q.expl && q.expl !== q.correct ? `<span class="re">${esc(q.expl)}</span>` : ""}</li>`).join("")}</ol></section>` : ""}</div>`;
   $("#ag").onclick = () => go(again); $("#bk").onclick = () => go(back); $("#ag").focus({ preventScroll: true });
+  if ($("#sh")) $("#sh").onclick = () => copyText(x.share, "Výsledek zkopírován");
+  if ($("#rv")) $("#rv").onclick = () => go(() => review(null, back));
+  const m = String(big).match(/^(\d+)(.*)$/); if (m && !x.stamp) countUp($("#big"), +m[1], m[2]);
 }
 
 /* ---------- FLASHCARDS ---------- */
@@ -208,7 +244,7 @@ function match(ids, back = home) {
 
 /* ---------- SPEED ---------- */
 function speed(ids, back = home) {
-  const pool = shuffle(poolFor(ids)); let k = 0, score = 0, left = 60, wrong = 0;
+  const pool = shuffle(poolFor(ids)); let k = 0, score = 0, left = 60, wrong = 0; const wrongs = [];
   app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="small mute">Chyba stojí 3 sekundy</span></div>
   <div class="clock" id="clk"><span class="sec num" id="tl">60</span><div class="track"><i id="tb"></i></div><span class="pts num" id="sc">0</span></div><div class="sheet" id="sq"></div></div>`;
   $(".back").onclick = () => go(back);
@@ -216,7 +252,7 @@ function speed(ids, back = home) {
     if (k >= pool.length) k = 0; const it = pool[k++];
     $("#sq").innerHTML = qHTML(it, optsFor(it));
     const bs = [...app.querySelectorAll("#sq .opt")];
-    const ans = b => { const sq = $("#sq"); sq.classList.remove("flash-ok", "flash-no"); void sq.offsetWidth; if (b.dataset.v === it.correct) { score++; S.done[it.id] = 1; sq.classList.add("flash-ok"); } else { wrong++; left = Math.max(0, left - 3); sq.classList.add("flash-no"); } $("#sc").textContent = score; q(); };
+    const ans = b => { const sq = $("#sq"); sq.classList.remove("flash-ok", "flash-no"); void sq.offsetWidth; const r = b.dataset.v === it.correct; record(it, r); if (r) { score++; sq.classList.add("flash-ok"); const sc = $("#sc"); sc.textContent = score; sc.classList.remove("pop"); void sc.offsetWidth; sc.classList.add("pop"); } else { wrong++; wrongs.push(it); left = Math.max(0, left - 3); sq.classList.add("flash-no"); const tl = $("#tl"); tl.classList.remove("hit"); void tl.offsetWidth; tl.classList.add("hit"); } q(); };
     bs.forEach(b => b.onclick = () => ans(b));
     document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= bs.length) ans(bs[n - 1]); };
   }
@@ -229,7 +265,7 @@ function speed(ids, back = home) {
     clearTimers(); const best = score > S.stats.bestSpeed; S.stats.bestSpeed = Math.max(S.stats.bestSpeed, score);
     if (score >= 15) unlock("speed15"); if (score >= 25) unlock("speed25");
     addXP(score * 4);
-    result(String(score), best && score ? "Nový osobní rekord." : "Čas vypršel.", `${wrong ? wrong + " " + plural(wrong, "chyba", "chyby", "chyb") + ". " : ""}Rekord ${S.stats.bestSpeed}. Získáno ${score * 4} XP.`, () => speed(ids, back), back);
+    result(String(score), best && score ? "Nový osobní rekord." : "Čas vypršel.", `${wrong ? wrong + " " + plural(wrong, "chyba", "chyby", "chyb") + ". " : ""}Rekord ${S.stats.bestSpeed}. Získáno ${score * 4} XP.`, () => speed(ids, back), back, { wrongs });
   }
 }
 
@@ -271,22 +307,22 @@ function boss(ids, back = home) {
   timers.push(sp);
   $("#go").onclick = () => fight();
   function fight() {
-    const qs = weighted(poolFor(drawn), 12); let i = 0, conv = 0, lives = 3; const step = 100 / 9;
+    const qs = weighted(poolFor(drawn), 12); let i = 0, conv = 0, lives = 3; const step = 100 / 9, wrongs = [];
     const seats = [["Předseda", "Chce vidět přehled"], ["Oponent", "Hledá díry"], ["Člen komise", "Doptává se"]];
     function show() {
       if (conv >= 99.9) return win(); if (lives <= 0 || i >= qs.length) return lose();
       const q = qs[i];
       app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Odejít</button><span class="tries" title="Pokusy na chybu">${[0, 1, 2].map(k => `<i class="${k >= lives ? "lost" : ""}"></i>`).join("")}</span><span class="small mute num">Otázka ${i + 1} / ${qs.length}</span></div>
-      <div class="board">${seats.map((s, k) => `<div class="seat ${conv >= (k + 1) * 33.3 - .5 ? "won" : ""}"><b>${s[0]}</b><span>${conv >= (k + 1) * 33.3 - .5 ? "Přesvědčen" : s[1]}</span></div>`).join("")}</div>
+      <div class="board">${seats.map((s, k) => `<div class="seat ${conv >= (k + 1) * 33.3 - .5 ? "won" : ""}">${faceSVG(k, conv >= (k + 1) * 33.3 - .5)}<div><b>${s[0]}</b><span>${conv >= (k + 1) * 33.3 - .5 ? "Přesvědčen" : s[1]}</span></div></div>`).join("")}</div>
       <div class="convince"><span class="small mute">Komise přesvědčena</span><div class="track"><i id="cv" style="width:${conv}%"></i></div><b class="num" id="cvn">${Math.round(conv)} %</b></div>
-      <div class="sheet">${qHTML(q, optsFor(q))}</div></div>`;
+      <div class="sheet in">${qHTML(q, optsFor(q))}</div></div>`;
       $(".back").onclick = () => go(back);
       const bs = [...app.querySelectorAll(".opt")]; let done = false;
       const next = () => { i++; show(); };
       const ans = b => {
-        if (done) return; done = true; const r = mark(bs, b, q);
-        if (r) { conv = Math.min(100, conv + step); S.done[q.id] = 1; $("#cv").style.width = conv + "%"; $("#cvn").textContent = Math.round(conv) + " %"; app.querySelectorAll(".seat").forEach((s, k) => { if (conv >= (k + 1) * 33.3 - .5) { s.classList.add("won"); s.querySelector("span").textContent = "Přesvědčen"; } }); }
-        else { lives--; app.querySelectorAll(".tries i").forEach((t, k) => t.classList.toggle("lost", k >= lives)); document.body.classList.add("ouch"); setTimeout(() => document.body.classList.remove("ouch"), 360); }
+        if (done) return; done = true; const r = mark(bs, b, q); record(q, r); $(".board").classList.add(r ? "nod" : "frown");
+        if (r) { conv = Math.min(100, conv + step); $("#cv").style.width = conv + "%"; $("#cvn").textContent = Math.round(conv) + " %"; app.querySelectorAll(".seat").forEach((s, k) => { if (conv >= (k + 1) * 33.3 - .5) { s.classList.add("won"); s.querySelector(".cface").classList.add("won"); s.querySelector("span").textContent = "Přesvědčen"; } }); }
+        else { wrongs.push(q); lives--; app.querySelectorAll(".tries i").forEach((t, k) => t.classList.toggle("lost", k >= lives)); document.body.classList.add("ouch"); setTimeout(() => document.body.classList.remove("ouch"), 360); }
         save();
         $("#fb").innerHTML = fbHTML(q, b, r, "Komise přikyvuje.", `<button class="btn-main" id="nx">Pokračovat<kbd>Enter</kbd></button>`);
         $("#nx").onclick = next; $("#nx").focus({ preventScroll: true });
@@ -294,9 +330,9 @@ function boss(ids, back = home) {
       bs.forEach(b => b.onclick = () => ans(b));
       document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= bs.length) ans(bs[n - 1]); };
     }
-    function win() { document.onkeydown = null; S.stats.bosses++; unlock("boss"); if (S.stats.bosses >= 3) unlock("boss3"); addXP(100 + lives * 20); result("Prospěla", "Komise je přesvědčená.", `Zbyl${lives === 1 ? "" : "y"} ti ${lives} ${plural(lives, "pokus", "pokusy", "pokusů")}. Získáno ${100 + lives * 20} XP.`, () => boss(ids, back), back); }
-    function lose() { document.onkeydown = null; addXP(15); result("Opravný termín", "Tentokrát to komisi nepřesvědčilo.", `Komise přesvědčena na ${Math.round(conv)} %. Projdi si kartičky k okruhům ${CHMAP[drawn[0]].n} a ${CHMAP[drawn[1]].n} a zkus to znovu. Za snahu 15 XP.`, () => boss(ids, back), back); }
+    function win() { document.onkeydown = null; S.stats.bosses++; unlock("boss"); if (S.stats.bosses >= 3) unlock("boss3"); addXP(100 + lives * 20); result("Obhájeno", "Komise je přesvědčená.", `Zbyl${lives === 1 ? "" : "y"} ti ${lives} ${plural(lives, "pokus", "pokusy", "pokusů")}. Získáno ${100 + lives * 20} XP.`, () => boss(ids, back), back, { wrongs, stamp: "ok" }); }
+    function lose() { document.onkeydown = null; addXP(15); result("Opravný termín", "Tentokrát to komisi nepřesvědčilo.", `Komise přesvědčena na ${Math.round(conv)} %. Projdi si kartičky k okruhům ${CHMAP[drawn[0]].n} a ${CHMAP[drawn[1]].n} a zkus to znovu. Za snahu 15 XP.`, () => boss(ids, back), back, { wrongs, stamp: "no" }); }
     show();
   }
 }
-const MODES = { quiz, cards, match, speed, order, boss };
+const MODES = { quiz, cards, match, speed, order, boss, review, daily };

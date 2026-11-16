@@ -77,11 +77,11 @@ section+section{margin-top:56px}
 .today{margin-top:28px;max-width:360px}
 .today .line{position:relative;height:12px;border-radius:2px;background:var(--rule);overflow:hidden;margin-top:6px}
 .today .line i{position:absolute;inset:0 auto 0 0;background:var(--hl);transition:width .8s}
-.fan{position:relative;height:380px}
-.fan .tk{position:absolute;left:50%;top:50%;width:250px;margin:-85px 0 0 -125px;transform-origin:50% 100%;animation:deal .9s cubic-bezier(.2,.9,.25,1.15) both;animation-delay:calc(var(--i) * 70ms + 150ms);transform:translateX(var(--x)) rotate(var(--r)) translateY(var(--y))}
-.fan .tk:hover,.fan .tk:focus-visible{transform:translateX(var(--x)) rotate(var(--r)) translateY(calc(var(--y) - 22px));z-index:9}
+.fan{position:relative;height:430px}
+.fan .tk{position:absolute;left:50%;top:50%;width:250px;margin:-60px 0 0 -130px;width:260px;transform-origin:50% 50%;animation:deal .9s cubic-bezier(.2,.9,.25,1.15) both;animation-delay:calc(var(--i) * 70ms + 150ms);transform:translateX(var(--x)) rotate(var(--r)) translateY(var(--y))}
+.fan .tk:hover,.fan .tk:focus-visible{transform:translateX(var(--x)) rotate(var(--r)) translateY(calc(var(--y) - 6px)) scale(1.05) rotate(calc(var(--r) * -1));z-index:9}
 @keyframes deal{from{transform:translateX(0) rotate(0) translateY(70px);opacity:0}}
-@media(max-width:820px){.hero{grid-template-columns:1fr;min-height:0}.fan{height:300px;transform:scale(.7)}.modes{grid-template-columns:1fr}}
+@media(max-width:820px){.hero{grid-template-columns:1fr;min-height:0}.fan{height:420px}.modes{grid-template-columns:1fr}}
 
 /* ticket */
 .tk{--notch:10px;display:grid;grid-template-columns:76px 1fr;background:var(--sheet);color:var(--ink);border-radius:10px;min-height:120px;text-align:left;
@@ -249,6 +249,56 @@ body.ouch .sheet{animation:shake .35s}
 @keyframes tin{from{transform:translateY(16px);opacity:0}}
 .fxp{position:fixed;z-index:35;font:900 22px var(--display);font-stretch:70%;color:var(--stamp);pointer-events:none;animation:up .9s cubic-bezier(.2,.8,.3,1) forwards}
 @keyframes up{to{transform:translateY(-46px);opacity:0}}
+/* přechody mezi obrazovkami: list papíru se odsune, další přijede */
+header{view-transition-name:hud}
+::view-transition-old(root){animation:vt-out .16s ease-in both}
+::view-transition-new(root){animation:vt-in .28s cubic-bezier(.2,.8,.2,1) both}
+@keyframes vt-out{to{opacity:0;transform:translateX(-36px)}}
+@keyframes vt-in{from{opacity:0;transform:translateX(36px)}}
+.flip,.sheet.in{animation:sheet-in .34s cubic-bezier(.2,.9,.25,1) both}
+@keyframes sheet-in{from{opacity:0;transform:translateX(40px) rotate(1.2deg)}}
+#sq>h3,#sq>.opts{animation:fade .16s both}
+.fan{transform:translateX(calc(var(--tilt,0) * 14px)) rotate(calc(var(--tilt,0) * 3deg));transition:transform .5s cubic-bezier(.2,.8,.2,1)}
+#app.still .fan .tk{animation:none}
+#app:not(.still) .tk .bar i,#app:not(.still) .today .line i{transform-origin:left;animation:grow .9s .35s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0)}}
+.mode[aria-disabled]{opacity:.45;cursor:default}
+.mode[aria-disabled]:hover svg{transform:none;stroke:var(--ink)}
+.clock .pts.pop{animation:pop .3s cubic-bezier(.3,1.8,.5,1)}
+.clock .sec.hit{animation:hit .4s}
+@keyframes hit{30%{transform:translateY(6px) scale(.9);color:var(--pen)}}
+.clock.low .sec{animation:tick 1s infinite}
+@keyframes tick{0%{transform:scale(1.12)}30%{transform:scale(1)}}
+/* výsledek */
+.swipe{background:linear-gradient(var(--hl),var(--hl)) no-repeat 0 88%/0% 38%;animation:swipe .6s .45s cubic-bezier(.6,0,.2,1) forwards;padding:0 2px}
+@keyframes swipe{to{background-size:100% 38%}}
+.score.stamped{display:inline-block;font-size:clamp(44px,9vw,84px);border:6px solid currentColor;border-radius:14px;padding:10px 22px 6px;margin:18px 0 22px;filter:url(#ink);transform:rotate(-5deg);animation:stamp-in .5s .15s cubic-bezier(.2,.9,.2,1) both;text-transform:uppercase;letter-spacing:.02em}
+.score.stamped.ok{color:var(--ok)}.score.stamped.no{color:var(--pen)}
+@keyframes stamp-in{from{transform:rotate(-16deg) scale(2.2);opacity:0}60%{transform:rotate(-5deg) scale(.96);opacity:1}}
+.recap{margin-top:40px;border-top:2px solid var(--ink);padding-top:18px}
+.recap ol{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:14px}
+.recap li{display:grid;gap:3px;padding-left:14px;border-left:3px solid var(--pen);animation:fade .35s calc(var(--k) * 60ms + .5s) both}
+.recap .rq{font-size:15px;color:var(--mute)}
+.recap .ra{font-weight:700}
+.recap .re{font-size:15px}
+/* komise */
+.seat{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center}
+.cface{width:44px;height:44px;fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linecap:round;transition:stroke .4s}
+.cface .eye{fill:var(--ink);stroke:none;transform-box:fill-box;transform-origin:center;animation:blink 4.6s var(--bd) infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+.cface .brow{transform-box:fill-box;transform-origin:center;transition:transform .25s}
+.cface .m1,.cface .m2{opacity:0}
+.cface.won{stroke:var(--ok)}.cface.won .eye{fill:var(--ok)}
+.cface.won .m0{opacity:0}.cface.won .m1{opacity:1}
+.board.nod .cface{animation:nod .5s cubic-bezier(.3,1.4,.5,1)}
+.board.nod .seat:nth-child(2) .cface{animation-delay:.08s}.board.nod .seat:nth-child(3) .cface{animation-delay:.16s}
+@keyframes nod{30%{transform:translateY(5px) rotate(4deg)}60%{transform:translateY(-1px)}}
+.board.frown .cface{animation:nope .55s}
+.board.frown .cface:not(.won) .m0{opacity:0}.board.frown .cface:not(.won) .m2{opacity:1}
+.board.frown .bl{transform:rotate(14deg) translateY(1px)}.board.frown .br{transform:rotate(-14deg) translateY(1px)}
+@keyframes nope{20%,60%{transform:rotate(-7deg)}40%,80%{transform:rotate(7deg)}}
+@media(max-width:600px){.seat{grid-template-columns:1fr;justify-items:start;gap:4px}.seat span{display:none}}
+@media(hover:none){kbd{display:none}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
 </style>
 </head>
