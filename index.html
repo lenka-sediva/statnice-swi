@@ -1,0 +1,1576 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Státnice SWI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+/* Layout: levý sloupec textu + vějíř zkouškových lístků; okruhy jako lístky s výsekem, odznaky jako razítka v indexu */
+:root{
+  --paper:#eceef3;      /* chladný papír */
+  --sheet:#fbfbfd;      /* lístek */
+  --ink:#18203a;        /* inkoust */
+  --mute:#5d6481;
+  --rule:#d5d9e4;
+  --stamp:#5b2fc9;      /* razítková fialová */
+  --hl:#ffe14d;         /* zvýrazňovač */
+  --pen:#d62f2f;        /* červená propiska */
+  --ok:#17845a;
+  --stamp-soft:color-mix(in srgb,var(--stamp) 10%,var(--sheet));
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,sans-serif;
+  --hand:"Caveat","Segoe Print",cursive;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#121628;--sheet:#1b2038;--ink:#e9ebf5;--mute:#9aa1bf;--rule:#2d3352;--stamp:#a88bff;--hl:#f5d33a;--pen:#ff6b62;--ok:#4fd39a;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#121628;--sheet:#1b2038;--ink:#e9ebf5;--mute:#9aa1bf;--rule:#2d3352;--stamp:#a88bff;--hl:#f5d33a;--pen:#ff6b62;--ok:#4fd39a;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:clamp(40px,6.4vw,76px);line-height:.92;font-weight:900;font-stretch:72%;letter-spacing:-.01em}
+h2{font-size:28px;font-weight:800;font-stretch:80%;line-height:1.1}
+h3{font-size:23px;font-weight:700;font-stretch:92%;line-height:1.25}
+p{margin:0}
+.num{font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}
+.small{font-size:14.5px}
+button{font:700 16px var(--body);color:var(--ink);background:var(--sheet);border:2px solid var(--ink);border-radius:10px;padding:11px 18px;cursor:pointer;transition:transform .12s,background .12s}
+button:active:not(:disabled){transform:translateY(1px)}
+button:disabled{cursor:default}
+:focus-visible{outline:3px solid var(--stamp);outline-offset:3px}
+.btn-main{background:var(--ink);color:var(--sheet)}
+.btn-main:hover:not(:disabled){background:var(--stamp);border-color:var(--stamp)}
+.btn-ghost{border-color:var(--rule)}
+.btn-ghost:hover{border-color:var(--ink)}
+.back{background:none;border:0;padding:4px 0;color:var(--mute);font-weight:700}
+.back:hover{color:var(--ink)}
+kbd{font:700 12px var(--body);border:1.5px solid currentColor;border-radius:5px;padding:0 5px;opacity:.55;margin-left:8px}
+
+/* header */
+header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--paper) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.hud{max-width:1120px;margin:auto;padding:10px 20px;display:flex;align-items:center;gap:20px}
+.mark{font:900 22px var(--display);font-stretch:68%;letter-spacing:.01em;background:none;border:0;padding:0;margin-right:auto}
+.lvl{display:flex;align-items:center;gap:10px}
+.lvl b{font:900 15px var(--display);font-stretch:90%;background:var(--ink);color:var(--sheet);border-radius:6px;padding:3px 8px}
+.xpbar{width:140px;height:8px;border-radius:4px;background:var(--rule);overflow:hidden}
+.xpbar i{display:block;height:100%;background:var(--stamp);transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.stat{font-size:14px;color:var(--mute);white-space:nowrap}.stat b{color:var(--ink)}
+@media(max-width:720px){.hud{gap:12px;flex-wrap:wrap}.xpbar{width:70px}.hide-s{display:none}}
+
+main{max-width:1120px;margin:auto;padding:28px 20px 96px}
+section+section{margin-top:56px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+
+/* hero */
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:32px;align-items:center;min-height:400px}
+.hero p.lead{font-size:19px;max-width:30ch;margin:18px 0 26px;color:var(--mute)}
+.hero .acts{display:flex;gap:12px;flex-wrap:wrap}
+.today{margin-top:28px;max-width:360px}
+.today .line{position:relative;height:12px;border-radius:2px;background:var(--rule);overflow:hidden;margin-top:6px}
+.today .line i{position:absolute;inset:0 auto 0 0;background:var(--hl);transition:width .8s}
+.fan{position:relative;height:380px}
+.fan .tk{position:absolute;left:50%;top:50%;width:250px;margin:-85px 0 0 -125px;transform-origin:50% 100%;animation:deal .9s cubic-bezier(.2,.9,.25,1.15) both;animation-delay:calc(var(--i) * 70ms + 150ms);transform:translateX(var(--x)) rotate(var(--r)) translateY(var(--y))}
+.fan .tk:hover,.fan .tk:focus-visible{transform:translateX(var(--x)) rotate(var(--r)) translateY(calc(var(--y) - 22px));z-index:9}
+@keyframes deal{from{transform:translateX(0) rotate(0) translateY(70px);opacity:0}}
+@media(max-width:820px){.hero{grid-template-columns:1fr;min-height:0}.fan{height:300px;transform:scale(.7)}.modes{grid-template-columns:1fr}}
+
+/* ticket */
+.tk{--notch:10px;display:grid;grid-template-columns:76px 1fr;background:var(--sheet);color:var(--ink);border-radius:10px;min-height:120px;text-align:left;
+  -webkit-mask:radial-gradient(circle var(--notch) at 76px 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle var(--notch) at 76px 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
+  mask:radial-gradient(circle var(--notch) at 76px 0,#0000 98%,#000) top/100% 51% no-repeat,radial-gradient(circle var(--notch) at 76px 100%,#0000 98%,#000) bottom/100% 51% no-repeat;
+  box-shadow:0 1px 0 var(--rule);transition:transform .18s cubic-bezier(.2,.8,.2,1);position:relative}
+.tk .stub{display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:2px dashed var(--rule);padding:10px 4px;font:900 40px/1 var(--display);font-stretch:62%}
+.tk .stub small{font:700 11px var(--body);color:var(--mute);margin-top:4px}
+.tk .body{padding:14px 16px 14px 18px;display:flex;flex-direction:column;gap:10px;justify-content:space-between}
+.tk .t{font:700 17px/1.2 var(--display);font-stretch:88%}
+.tk .m{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--mute)}
+.tk .m .bar{flex:1;height:6px;border-radius:3px;background:var(--rule);overflow:hidden}
+.tk .m .bar i{display:block;height:100%;background:var(--ok)}
+.fan .tk{box-shadow:0 10px 30px -10px rgba(10,15,40,.35);border:0;padding:0;font:inherit}
+.grid-tk{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.grid-tk .tk{cursor:default}
+.grid-tk .tk .stub{cursor:pointer;border:0;border-right:2px dashed var(--rule);background:none;border-radius:0;color:inherit}
+.grid-tk .tk .stub:hover{background:var(--stamp-soft)}
+.grid-tk .tk.on .stub{background:var(--stamp);color:var(--sheet)}
+.grid-tk .tk.on .stub small{color:inherit;opacity:.8}
+.grid-tk .tk .body{cursor:pointer}
+.grid-tk .tk .body:hover .t{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}
+.done-stamp{position:absolute;right:12px;bottom:10px;background:var(--sheet);font:900 12px var(--display);font-stretch:75%;color:var(--ok);border:2px solid var(--ok);border-radius:5px;padding:1px 6px;transform:rotate(-8deg);letter-spacing:.06em}
+
+/* modes */
+.modes{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:0 28px;border-top:2px solid var(--ink)}
+.mode{all:unset;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center;padding:16px 4px;border-bottom:1px solid var(--rule)}
+.mode svg{width:34px;height:34px;stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .25s cubic-bezier(.3,1.6,.5,1)}
+.mode b{font:800 20px var(--display);font-stretch:85%;display:block}
+.mode span.d{font-size:14.5px;color:var(--mute)}
+.mode .rec{font-size:13px;color:var(--mute);text-align:right}
+.mode:hover svg,.mode:focus-visible svg{transform:rotate(-8deg) scale(1.12);stroke:var(--stamp)}
+.mode:focus-visible{outline:3px solid var(--stamp)}
+
+/* stamps */
+.stamps{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:18px 10px}
+.st{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.st svg{width:96px;height:96px;overflow:visible}
+.st .nm{font:700 13.5px/1.2 var(--display);font-stretch:90%}
+.st .hint{font-size:12px;color:var(--mute);line-height:1.3}
+.st:not(.got) svg{opacity:.32}
+.st.got svg{color:var(--stamp)}
+.share{background:var(--sheet);border-radius:12px;padding:18px;border:1px solid var(--rule)}
+.share blockquote{margin:0 0 14px;font-size:16px;border-left:4px solid var(--hl);padding-left:12px}
+.twocol{display:grid;grid-template-columns:1.6fr 1fr;gap:40px}
+@media(max-width:820px){.twocol{grid-template-columns:1fr}}
+
+/* play */
+.play{max-width:780px;margin:auto}
+.ptop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+.steps{display:flex;gap:4px;margin-bottom:22px}
+.steps i{flex:1;height:5px;border-radius:2px;background:var(--rule);transition:background .3s}
+.steps i.ok{background:var(--ok)}.steps i.no{background:var(--pen)}.steps i.cur{background:var(--ink)}
+.sheet{background:var(--sheet);border-radius:14px;padding:28px 30px;position:relative;box-shadow:0 1px 0 var(--rule),0 20px 40px -28px rgba(10,15,40,.4)}
+.sheet .from{font-size:14px;color:var(--mute);margin-bottom:8px}
+.combo{font:900 18px var(--display);font-stretch:70%;color:var(--stamp)}
+.combo.pop{animation:pop .35s cubic-bezier(.3,1.8,.5,1)}
+@keyframes pop{from{transform:scale(1.6)}}
+.opts{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:4px}
+.opts.tf{grid-template-columns:1fr 1fr;gap:10px}
+.opt{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px 12px;border-radius:8px;border:2px solid transparent;position:relative;line-height:1.4}
+.opts.tf .opt{border-color:var(--rule);justify-content:center;grid-template-columns:auto auto;font-weight:700}
+.opt .k{font:800 15px var(--display);color:var(--mute)}
+.opt:hover:not([aria-disabled]){border-color:var(--rule)}
+.opt:focus-visible{border-color:var(--stamp)}
+.opt .tx{padding:1px 4px;margin:-1px -4px;border-radius:4px;background:linear-gradient(var(--hl),var(--hl)) no-repeat 0 0/0% 100%;transition:background-size .5s cubic-bezier(.6,0,.2,1),color .2s .15s;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.opt.good{border-color:var(--ok)}
+.opt.good .tx{background-size:100% 100%;color:#18203a}
+.opt.bad .tx{position:relative}
+.opt.bad .tx::after{content:"";position:absolute;left:-4px;right:-4px;top:52%;height:2.5px;background:var(--pen);border-radius:2px;transform:scaleX(0) rotate(-1.5deg);transform-origin:left;animation:strike .35s .05s cubic-bezier(.6,0,.3,1) forwards}
+@keyframes strike{to{transform:scaleX(1) rotate(-1.5deg)}}
+.opt .note{position:absolute;right:10px;top:50%;font:600 26px var(--hand);color:var(--pen);transform:translateY(-50%) rotate(-6deg);animation:write .4s .3s both}
+.opt.good .note{color:var(--ok)}
+@keyframes write{from{opacity:0;clip-path:inset(0 100% 0 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.opt[aria-disabled]{cursor:default}
+.fb{margin-top:20px;padding-top:16px;border-top:1px dashed var(--rule);display:flex;gap:16px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;animation:fade .3s}
+.fb .why{flex:1;min-width:240px;display:grid;gap:6px}
+.fb .why b{font:800 18px var(--display);font-stretch:88%}
+.fb.is-ok .why b{color:var(--ok)}.fb.is-no .why b{color:var(--pen)}
+.fb .mine{color:var(--mute);font-size:15px}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}}
+.result{max-width:560px;margin:40px auto;text-align:left}
+.result .score{font:900 clamp(80px,14vw,140px)/.9 var(--display);font-stretch:62%;margin:8px 0 6px}
+.result .acts{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap}
+
+/* flashcards: kartotéční lístek */
+.flip{perspective:1400px;height:320px;cursor:pointer;margin-top:4px}
+.inner{position:relative;height:100%;transition:transform .6s cubic-bezier(.3,1.3,.4,1);transform-style:preserve-3d}
+.flip.on .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:6px;padding:52px 34px 26px;background:var(--sheet);box-shadow:0 20px 40px -26px rgba(10,15,40,.5);
+  background-image:linear-gradient(var(--pen),var(--pen)),repeating-linear-gradient(transparent 0 31px,color-mix(in srgb,var(--stamp) 22%,transparent) 31px 32px);background-size:100% 2px,100% 100%;background-position:0 40px,0 40px;background-repeat:no-repeat,repeat}
+.face .from{position:absolute;top:12px;left:34px;font-size:13.5px;color:var(--mute)}
+.face h2{font-size:clamp(30px,5vw,44px);font-stretch:75%;margin-top:30px}
+.face .tap{position:absolute;bottom:18px;left:34px;font-size:13.5px;color:var(--mute)}
+.face.back{transform:rotateY(180deg);font:600 clamp(26px,3.6vw,32px)/1.25 var(--hand);color:var(--stamp);display:flex;align-items:center}
+.boxes{display:flex;gap:4px}.boxes i{width:14px;height:14px;border:2px solid var(--ink);border-radius:3px}.boxes i.f{background:var(--ink)}
+.rate{display:flex;gap:10px;margin-top:20px}
+
+/* match */
+.match{display:grid;grid-template-columns:1fr 1.5fr;gap:12px}
+.match .col{display:flex;flex-direction:column;gap:8px}
+.mt{text-align:left;font-weight:700;border-color:var(--rule);min-height:54px;line-height:1.3;transition:opacity .35s,transform .35s,border-color .15s,background .15s}
+.mt.def{font-weight:400;font-size:15px}
+.mt.sel{border-color:var(--stamp);background:var(--stamp-soft)}
+.mt.paired{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--sheet))}
+.mt.gone{opacity:0;transform:scale(.94);pointer-events:none}
+.shake{animation:shake .38s;border-color:var(--pen)!important}
+@keyframes shake{20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@media(max-width:600px){.match{grid-template-columns:1fr}.opts.tf{grid-template-columns:1fr 1fr}}
+
+/* speed */
+.clock{display:flex;align-items:center;gap:18px;margin-bottom:16px}
+.clock .sec{font:900 64px/1 var(--display);font-stretch:62%;width:2.2ch}
+.clock .track{flex:1;height:10px;background:var(--rule);border-radius:5px;overflow:hidden}
+.clock .track i{display:block;height:100%;background:var(--ink);transform-origin:left;transition:background .3s}
+.clock.low .track i{background:var(--pen)}.clock.low .sec{color:var(--pen)}
+.clock .pts{font:900 34px var(--display);font-stretch:70%}
+.flash-ok{animation:fok .3s}.flash-no{animation:fno .3s}
+@keyframes fok{30%{box-shadow:0 0 0 4px var(--ok)}}@keyframes fno{30%{box-shadow:0 0 0 4px var(--pen)}}
+
+/* order */
+.built{list-style:none;padding:0;margin:18px 0;counter-reset:s;display:grid;gap:6px;min-height:48px}
+.built li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;align-items:center;padding:10px 12px;border-radius:8px;background:var(--paper);cursor:pointer;animation:fade .25s}
+.built li::before{content:counter(s);font:900 20px var(--display);font-stretch:70%}
+.built li.good{background:color-mix(in srgb,var(--ok) 16%,var(--sheet))}
+.built li.bad{background:color-mix(in srgb,var(--pen) 14%,var(--sheet))}
+.built li.ph{cursor:default;color:var(--mute);border:2px dashed var(--rule);background:none}.built li.ph::before{content:""}
+.pool{display:flex;flex-wrap:wrap;gap:8px}
+.pool button{border-color:var(--rule);font-weight:400}.pool button:hover{border-color:var(--ink)}
+
+/* boss: komise */
+.draw{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:24px 0;perspective:1000px}
+.draw .tk{animation:none;transform-style:preserve-3d}
+.draw .tk.spin{animation:spin .7s cubic-bezier(.3,1.2,.4,1) both}
+@keyframes spin{from{transform:rotateY(-180deg) translateY(30px);opacity:.2}}
+@media(max-width:600px){.draw{grid-template-columns:1fr}}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.seat{background:var(--sheet);border-radius:10px;padding:10px 12px;border-top:4px solid var(--ink);transition:border-color .4s}
+.seat b{font:800 16px var(--display);font-stretch:85%;display:block}
+.seat span{font-size:13px;color:var(--mute)}
+.seat.won{border-color:var(--ok)}
+.convince{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.convince .track{flex:1;height:12px;border-radius:6px;background:var(--rule);overflow:hidden}
+.convince .track i{display:block;height:100%;background:var(--ok);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.tries{display:flex;gap:6px}.tries i{width:16px;height:16px;border-radius:50%;background:var(--ink);transition:background .3s,transform .3s}.tries i.lost{background:transparent;box-shadow:inset 0 0 0 2px var(--pen);transform:scale(.8)}
+body.ouch .sheet{animation:shake .35s}
+
+/* chapter */
+.chead{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:end;margin:8px 0 28px}
+.chead .n{font:900 120px/.8 var(--display);font-stretch:62%;color:var(--stamp)}
+.cheat{display:grid;grid-template-columns:minmax(170px,26%) 1fr;background:var(--sheet);border-radius:12px;overflow:hidden;margin:0}
+.cheat dt,.cheat dd{margin:0;padding:12px 16px;border-bottom:1px solid var(--rule)}
+.cheat dt{font:700 16px var(--display);font-stretch:90%}
+@media(max-width:600px){.cheat{grid-template-columns:1fr}.cheat dt{border:0;padding-bottom:0}.chead .n{font-size:84px}}
+.modes.compact{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+
+/* overlays */
+#slam{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none;z-index:40}
+#slam .big{color:var(--stamp);animation:slam 1.9s cubic-bezier(.2,.9,.2,1) forwards;text-align:center}
+#slam .big svg{width:min(260px,60vw);height:auto;filter:drop-shadow(0 10px 20px rgba(40,10,90,.25))}
+@keyframes slam{0%{transform:scale(2.4) rotate(-24deg);opacity:0}18%{transform:scale(.94) rotate(-9deg);opacity:1}26%{transform:scale(1.02) rotate(-9deg)}80%{opacity:1;transform:scale(1) rotate(-9deg)}100%{opacity:0;transform:scale(1) rotate(-9deg)}}
+#toasts{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:30;display:grid;gap:8px;justify-items:center}
+.toast{background:var(--ink);color:var(--sheet);padding:10px 18px;border-radius:10px;font-weight:700;animation:tin .3s cubic-bezier(.3,1.4,.5,1)}
+.toast.out{opacity:0;transition:opacity .4s}
+@keyframes tin{from{transform:translateY(16px);opacity:0}}
+.fxp{position:fixed;z-index:35;font:900 22px var(--display);font-stretch:70%;color:var(--stamp);pointer-events:none;animation:up .9s cubic-bezier(.2,.8,.3,1) forwards}
+@keyframes up{to{transform:translateY(-46px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="ink"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="4"/><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -1.3 1.75"/><feComposite in="SourceGraphic" operator="in"/></filter></svg>
+<header><div class="hud" id="hud"></div></header>
+<main id="app"></main>
+<div id="slam"></div>
+<div id="toasts" aria-live="polite"></div>
+<script>
+const EXPL = {
+"fp|tf|2":"Podtřída může zastoupit nadtřídu (Pes místo Zvíře) – to je přesně polymorfismus přes dědičnost.",
+"fp|tf|4":"Call-by-name dosadí nevyhodnocený výraz a ten se počítá při každém použití. Call-by-need to řeší uložením výsledku.",
+"lp|q|2":"Prolog zkouší klauzule v pořadí, jak jsou zapsané (shora dolů), a cíle v těle pravidla vyhodnocuje zleva doprava.",
+"lp|q|7":"Logické programování je deklarativní – místo cyklů a podmínek se používá rekurze, pravidla a backtracking.",
+"lp|tf|2":"U obou úloh se postupně zkouší možnosti a při slepé uličce se systém vrátí k poslednímu rozhodnutí – přesně to dělá backtracking.",
+"lp|tf|4":"Popisujeme fakta a pravidla (CO platí) a Prolog sám hledá řešení – neříkáme mu JAK.",
+"bpm|q|0":"BPMN = Business Process Model and Notation, standard OMG pro grafický zápis procesů.",
+"bpm|q|1":"XOR (exkluzivní) brána pustí tok právě jednou větví. AND pustí všemi, OR jednou nebo více.",
+"bpm|q|2":"Swimlanes vymezují odpovědnost: pool = účastník (organizace), lane = role nebo oddělení uvnitř něj.",
+"bpm|q|3":"Extend je volitelné rozšíření. Include je povinné – zahrnutá úloha proběhne vždy.",
+"bpm|q|4":"Use Case diagram ukazuje aktéry a případy užití systému. Sekvenční ukazuje komunikaci v čase, aktivitní tok činností.",
+"bpm|q|5":"Modelování procesů pomáhá najít slabá místa, uchovat know-how a připravit certifikace. Kód z něj automaticky nevzniká.",
+"bpm|tf|0":"Synchronizace (např. AND brána na konci) čeká, až doběhnou všechny paralelní větve, a teprve pak pokračuje.",
+"bpm|tf|2":"Aktér je kdokoli mimo systém, kdo s ním komunikuje – člověk i jiný systém (např. platební brána).",
+"oop|q|0":"Smalltalk byl první čistě objektový jazyk, C++ přinesl OOP do mainstreamu. Java a C# přišly až v 90. letech a později.",
+"oop|q|1":"Zapouzdření, dědičnost a polymorfismus jsou tři pilíře. Abstrakce se někdy přidává jako čtvrtý.",
+"oop|q|2":"Vysoká soudržnost znamená, že třída dělá jednu věc dobře. Nízká soudržnost a god object jsou známky špatného návrhu.",
+"oop|q|3":"Stejné rozhraní (vypocitej()), různé chování podle třídy objektu = polymorfismus.",
+"oop|tf|0":"Třída je šablona (typ), objekt je její konkrétní instance s vlastními hodnotami atributů.",
+"agile|q|0":"Daily Scrum je krátká denní synchronizace týmu, časově omezená na 15 minut.",
+"agile|q|2":"Elaboration rozpracuje architekturu a odstraní největší rizika. Inception definuje rozsah, Construction staví, Transition předává.",
+"agile|q|3":"RED = nejdřív napíšeš test, který selže. GREEN = minimální kód, aby prošel. REFACTOR = vyčištění kódu.",
+"agile|q|4":"Agilní manifest: jednotlivci a interakce, fungující software, spolupráce se zákazníkem a reakce na změnu mají přednost.",
+"agile|q|5":"Kanban nemá sprinty ani pevné role – práce plyne nepřetržitě, omezená WIP limity.",
+"agile|q|6":"Vodopád je lineární a změny jsou drahé, proto se hodí jen tam, kde se požadavky během projektu nemění.",
+"agile|q|7":"Collective code ownership je praktika XP – každý v týmu smí upravit jakoukoli část kódu.",
+"agile|tf|2":"Retrospektiva je o tom, JAK tým pracuje (spolupráce, proces). Produkt hodnotí Sprint Review.",
+"agile|tf|3":"Požadavky v supportu přicházejí průběžně a nedají se plánovat do sprintů – nepřetržitý tok Kanbanu sedí.",
+"agent|q|0":"Užitkový agent porovnává, jak dobré jednotlivé cesty jsou. Cílový agent rozlišuje jen „cíl splněn / nesplněn“.",
+"agent|q|1":"Krátkodobou paměť tvoří kontextové okno (aktuální konverzace). Dlouhodobá je vektorová DB nebo soubory.",
+"agent|q|2":"Workflow má předem dané cesty, takže je levnější a předvídatelné – ideální pro opakující se, dobře popsané úlohy.",
+"agent|q|3":"Voting pustí stejnou úlohu vícekrát a výsledky porovná hlasováním. Nezávislé podúlohy paralelně jsou sectioning.",
+"agent|q|4":"FIPA ACL je klasický jazyk pro komunikaci agentů, A2A (Agent2Agent) je jeho moderní protějšek pro LLM agenty.",
+"agent|q|5":"Agent dostane jen nutná oprávnění, běží v sandboxu a nevratné akce schvaluje člověk.",
+"agent|q|6":"Wooldridge & Jennings: autonomie, reaktivita, proaktivita a sociální schopnost. Ostatní vlastnosti jsou doplňkové.",
+"agent|tf|1":"Agent je dražší a hůř předvídatelný. Složitost se přidává, jen když prokazatelně pomůže.",
+"agent|tf|3":"Reaktivní agent reaguje rychle podle pravidel na podněty, bez vnitřního modelu a plánování.",
+"db|q|1":"DELETE maže řádky jednotlivě a loguje je (dá se vrátit ROLLBACKem). TRUNCATE uvolní celé datové bloky, proto je rychlejší.",
+"db|q|2":"DROP TABLE odstraní data i strukturu tabulky. TRUNCATE a DELETE strukturu ponechají.",
+"db|q|3":"REVOKE práva odebírá, GRANT je přiděluje. Obojí patří do DCL.",
+"db|q|4":"SAVEPOINT je záchytný bod v transakci – ROLLBACK TO SAVEPOINT vrátí jen změny po něm, ne celou transakci.",
+"db|q|5":"Atomicita: transakce proběhne celá, nebo vůbec. Konzistence hlídá pravidla, Izolovanost oddělení transakcí, Trvalost uložení.",
+"db|q|6":"Selekce vybírá řádky podle podmínky (WHERE). Projekce vybírá sloupce (seznam za SELECT).",
+"db|q|7":"Full Outer Join vrátí všechny řádky z obou tabulek, chybějící protějšky doplní NULL.",
+"db|q|8":"Natural Join automaticky spojí tabulky přes všechny stejně pojmenované sloupce, bez podmínky ON.",
+"db|tf|0":"Bez WHERE se podmínka vztahuje na všechny řádky, takže UPDATE přepíše celou tabulku.",
+"db|tf|3":"COMMIT změny trvale potvrdí a zviditelní je ostatním transakcím.",
+"er|q|4":"Částečná závislost může vzniknout jen na části složeného klíče. S jednoduchým klíčem je tabulka v 1NF automaticky i v 2NF.",
+"er|q|5":"M:N se rozloží přes vazební tabulku se dvěma cizími klíči na obě strany – vzniknou dva vztahy 1:N.",
+"er|tf|0":"Relace je množina, takže pořadí řádků (ani sloupců) nemá význam.",
+"er|tf|1":"Relace je množina a množina nemá duplicitní prvky – řádky odliší primární klíč.",
+"er|tf|2":"3NF odstraní většinu anomálií. Vyšší formy (BCNF, 4NF) se řeší jen výjimečně.",
+"cg|q|0":"V kartézských souřadnicích je translace sčítání, ne násobení. Přidáním souřadnice w=1 jde i posun zapsat maticí a skládat transformace.",
+"cg|q|1":"3D bod má v homogenních souřadnicích 4 složky [x, y, z, 1], proto matice 4×4.",
+"cg|q|2":"Cohen–Sutherland a Liang–Barsky ořezávají úsečky. Bresenham úsečku kreslí, Z-buffer řeší viditelnost.",
+"cg|q|3":"Model → svět, View → kamera, Projection → clip-space, Viewport → pixely obrazovky.",
+"cg|q|4":"Perspektivní frustum je komolý jehlan (blízké objekty větší). Ortogonální projekce má kvádr.",
+"cg|q|5":"Kameru definuje pozice (eye), cíl (center) a up-vektor. Barva pozadí s ní nesouvisí.",
+"cg|tf|0":"Zrcadlení (škálování s −1) převrátí orientaci – z levotočivé soustavy udělá pravotočivou.",
+"cg|tf|1":"Translace jen posune objekt, tvar ani velikost se nemění.",
+"cg|tf|2":"Viewport transformace převede NDC (−1 až 1) na pixely – u FullHD x od 0 do 1920.",
+"ioc|q|0":"IoC je obecný princip „řízení přebírá framework“. DI (a Service Locator) jsou konkrétní způsoby, jak ho realizovat.",
+"ioc|q|1":"Konstruktor zaručí, že objekt má všechny povinné závislosti hned při vzniku, a dají se snadno podstrčit v testech.",
+"ioc|q|2":"Když závislosti dodává někdo zvenku, v testu místo nich snadno podstrčíš mock objekty.",
+"ioc|q|3":"jQuery je knihovna pro práci s DOM, žádný DI kontejner nemá. Spring, NestJS i Angular ho mají.",
+"ioc|q|4":"Do privátního atributu se bez frameworku (reflexe) nedostaneš, takže v testech nejde závislost snadno nahradit.",
+"ioc|tf|0":"ASP.NET Core má DI zabudované přímo v jádru (IServiceCollection).",
+"ioc|tf|2":"Nette má vlastní DI kontejner (Nette DI), který sestavuje služby podle konfigurace.",
+"rest|q|0":"POST vytváří nový zdroj, GET čte, PUT nahrazuje celý zdroj, DELETE maže.",
+"rest|q|1":"204 No Content = operace proběhla, ale odpověď nemá tělo. U DELETE je to typická odpověď.",
+"rest|q|2":"SOAP je striktně XML (obálka Envelope, Header, Body). REST formát nepředepisuje, obvykle JSON.",
+"rest|q|3":"SOAP je nezávislý na transportu – nejčastěji HTTP, ale funguje i přes SMTP nebo JMS.",
+"rest|q|5":"Rate limiting omezí počet požadavků za čas (typicky HTTP 429), tím brzdí brute-force i přetížení.",
+"rest|q|6":"Časové razítko a unikátní ID zprávy umožní serveru poznat a odmítnout zprávu poslanou znovu.",
+"rest|q|7":"Každá služba se nasazuje, monitoruje a komunikuje po síti zvlášť – to zvyšuje provozní složitost.",
+"rest|tf|0":"WS-Security dává šifrování a podpisy na úrovni zprávy a WS-AtomicTransaction transakce – proto ho banky využívají.",
+"rest|tf|1":"XML Encryption umí zašifrovat jen vybraný element (třeba číslo karty) a zbytek nechat čitelný.",
+"rast|q|0":"DDA počítá y = kx + q s desetinnými čísly a zaokrouhluje – to je pomalejší než celočíselná aritmetika.",
+"rast|q|1":"Bresenham sleduje celočíselnou chybu (prediktor), takže stačí sčítání, odčítání a bitové posuny.",
+"rast|q|2":"Kružnice je osově souměrná, stačí spočítat jeden oktant (0–45°) a zbytek zrcadlit.",
+"rast|q|3":"Seed fill ukládá každý pixel na zásobník nebo do rekurze, u velkých ploch hrozí stack overflow.",
+"rast|q|4":"Scanline pracuje s hranami polygonu a řádky – na tomto principu GPU rasterizuje trojúhelníky.",
+"rast|q|5":"8 bitů = 2⁸ = 256 možných hodnot, proto max. 256 barev (paleta GIFu).",
+"rast|tf|0":"Scanline počítá průsečíky řádků s hranami polygonu (z jeho vrcholů), nemusí procházet každý pixel.",
+"rast|tf|1":"Seed fill se používá v malovacích programech (kyblík). Polygony v 3D se rasterizují scanline přístupem.",
+"scene|q|0":"Když se polygony cyklicky překrývají nebo se protínají, nejde určit jedno pořadí od nejvzdálenějšího.",
+"scene|q|1":"Z-buffer jen porovná hloubku každého pixelu, bez řazení – lineárně podle počtu pixelů.",
+"scene|q|2":"Z-buffer potřebuje uložit hloubku pro každý pixel obrazovky – další buffer v paměti.",
+"scene|q|3":"Gouraud počítá světlo jen ve vrcholech a barvy interpoluje. Odlesk uprostřed polygonu proto nezachytí.",
+"scene|q|4":"Čtverec má 4 rohy. Index buffer říká, které 3 tvoří každý trojúhelník, sdílené vrcholy se neopakují.",
+"scene|q|5":"Vertex shader mění polohu vrcholů, takže deformuje geometrii. Fragment shader řeší barvu pixelů.",
+"scene|q|6":"Phong = ambientní (rozptýlené světlo) + difúzní (matné) + spekulární (lesklý odlesk).",
+"scene|tf|0":"Phong počítá osvětlení pro každý pixel (interpoluje normály), proto je náročnější než Flat a Gouraud.",
+"scene|tf|2":"Ray casting vyšle paprsek a najde první průsečík. Ray tracing na to navazuje odrazy, lomy a stíny.",
+"img|q|0":"Bilineární interpolace bere vážený průměr 2×2 = 4 sousedních pixelů. Bikubická 4×4 = 16.",
+"img|q|1":"JPEG je ztrátový a kolem ostrých hran dělá artefakty – na fotky dobrý, na text a grafiku ne.",
+"img|q|2":"PNG je bezeztrátový a používá Deflate = LZ77 + Huffman. DCT patří JPEGu.",
+"img|q|3":"Lidské oko je citlivější na jas než na barvu, proto lze barevné složky uložit v menším rozlišení.",
+"img|q|4":"Medián vybere prostřední hodnotu z okolí, takže úplně ignoruje extrémní bílé a černé pixely.",
+"img|q|5":"Histogram jen počítá pixely podle jasu – neví, KDE v obrázku jsou.",
+"img|q|6":"BMP ukládá pixely většinou bez komprese, proto má velké soubory.",
+"img|tf|0":"Histogram nezná polohu pixelů – když pixely přeházíš, histogram zůstane stejný.",
+"img|tf|1":"Huffmanovo kódování je bezeztrátové – jen dá častějším symbolům kratší kódy.",
+"web|q|0":"init() běží jednou při startu, service() pro každý požadavek, destroy() při ukončení.",
+"web|q|1":"Každý POST typicky vytvoří nový zdroj, opakování má jiný efekt. GET, PUT a DELETE jsou idempotentní.",
+"web|q|2":"Escapování zabrání vložení skriptu do HTML, CSP zakáže spouštět skripty z nepovolených zdrojů.",
+"web|q|3":"Parametrizovaný dotaz oddělí data od SQL příkazu, takže vstup uživatele nikdy nespustí SQL.",
+"web|q|4":"Hash je jednosměrný (heslo nejde zpětně získat) a BCrypt je záměrně pomalý se solí. Šifrování by šlo dešifrovat.",
+"web|q|5":"HttpOnly zakáže čtení cookie z JavaScriptu (obrana proti XSS), Secure ji posílá jen přes HTTPS.",
+"web|q|6":"HSTS (Strict-Transport-Security) řekne prohlížeči, aby web navštěvoval jen přes HTTPS.",
+"web|q|7":"CompletableFuture a reaktivní Spring WebFlux zpracovávají úlohy bez blokování vlákna.",
+"web|q|8":"JMeter a k6 simulují zátěž mnoha uživatelů. Selenium a Cypress jsou na E2E testy funkčnosti.",
+"web|q|9":"Elasticsearch ukládá a prohledává logy, Logstash je sbírá a zpracovává, Kibana je vizualizuje.",
+"web|tf|1":"Každý HTTP požadavek je nezávislý, server si sám nic nepamatuje – stav se řeší sessions, cookies nebo tokeny.",
+"web|tf|2":"Hesla ani tokeny do logů nikdy nepatří – logy čte víc lidí a často nejsou chráněné.",
+"web|tf|3":"Spring Security zapíná CSRF ochranu automaticky. U čistě bezstavových REST API s tokeny se často vypíná.",
+"mvc|q|0":"V MVP je View pasivní a veškerou komunikaci s Modelem řídí Presenter.",
+"mvc|q|1":"V Djangu (MVT) roli Controlleru plní View a prezentační vrstvu tvoří Template.",
+"mvc|q|2":"V MVVM se View obousměrně váže na ViewModel přes data-binding – změna v jednom se projeví v druhém.",
+"mvc|q|3":"Aktivní model sám upozorní View na změnu – View se zaregistruje jako pozorovatel (Observer).",
+"mvc|q|4":"Presenter řídí veškerou interakci, takže u velké aplikace snadno nabobtná.",
+"mvc|q|5":"JSP Model 1 míchal logiku a HTML v JSP stránkách. Model 2 to oddělil přes servlet jako Controller.",
+"mvc|q|6":"Mnoho služeb, rozhraní a orchestrace (ESB) znamená vysokou složitost správy.",
+"mvc|tf|0":"V klasickém MVC si View může data číst přímo z Modelu. Zcela odstíněné je až v MVP.",
+"mvc|tf|2":"MVP, MVVM i MVT vycházejí z MVC a liší se hlavně tím, kdo zprostředkuje komunikaci View a Modelu.",
+"sort|q|0":"Merge sort vždy dělí na poloviny (log n úrovní) a slévá v O(n), nezávisle na datech.",
+"sort|q|1":"Když pivot rozdělí pole na 0 a n−1 prvků (např. první prvek u seřazeného pole), rekurze má n úrovní.",
+"sort|q|2":"Selection sort prohazuje vzdálené prvky, takže může změnit pořadí stejných klíčů. Ostatní tři jsou stabilní.",
+"sort|q|3":"Merge sort potřebuje pomocné pole velikosti n pro slévání, ostatní řadí přímo v poli.",
+"sort|q|5":"Merge sort čte a slévá data sekvenčně po blocích, což se hodí pro data, která se nevejdou do paměti.",
+"sort|q|6":"Selection sort udělá nejvýš n−1 výměn – výhodné, když je zápis drahý.",
+"sort|q|7":"U seřazeného pole Insertion sort jen projde prvky a nic nevkládá – jeden průchod O(n).",
+"sort|tf|0":"Bubble sort prohazuje jen sousedy, kteří jsou ostře ve špatném pořadí, takže stejné prvky nepřehodí.",
+"sort|tf|1":"Quick sort je v průměru nejrychlejší a nepotřebuje pomocné pole, proto se v praxi používá nejčastěji.",
+"search|q|0":"Půlení intervalu funguje jen tehdy, když víš, že vlevo jsou menší a vpravo větší hodnoty.",
+"search|q|1":"Boyer-Moore porovnává od konce vzoru a díky tomu umí při neshodě přeskočit víc znaků.",
+"search|q|2":"KMP projde text jednou (n) a předzpracuje vzor jednou (m) – celkem O(n + m).",
+"search|q|3":"Rolling hash při posunu okna odečte odcházející znak a přičte nový, místo počítání hashe znovu.",
+"search|q|4":"Různé řetězce mohou mít stejný hash (kolize), proto se shoda hashů musí ověřit porovnáním znaků.",
+"search|q|5":"Boyer-Moore je v praxi velmi rychlý na dlouhých textech, proto ho používají editory a grep.",
+"search|q|6":"Hashe víc vzorů se dají porovnávat najednou, proto se Karp-Rabin hodí pro detekci plagiátů.",
+"search|tf|0":"KMP díky prefixové tabulce posouvá jen vzor, ukazatel v textu jde stále dopředu.",
+"search|tf|1":"Naivní algoritmus má O(n·m) a vrací se v textu – u dlouhých textů je nejpomalejší.",
+"search|tf|2":"Boyer-Moore kombinuje dvě heuristiky: bad character a good suffix, a bere větší posun.",
+"graph|q|2":"Borůvka svůj algoritmus publikoval v roce 1926, Jarník 1930, Kruskal 1956.",
+"graph|q|3":"Union-find rychle ověří, jestli oba konce hrany už jsou ve stejné komponentě – pak by hrana vytvořila cyklus.",
+"graph|q|4":"Jarník-Prim roste z jednoho vrcholu s prioritní frontou, což se vyplatí u grafů s mnoha hranami. Kruskal řadí všechny hrany, hodí se pro řídké.",
+"graph|q|5":"Halda dává minimum (maximum) v O(1) a vkládá v O(log n) – ideální prioritní fronta.",
+"graph|q|6":"Matice sousednosti (n×n) se hodí pro husté grafy, seznam sousedů pro řídké.",
+"graph|tf|0":"Les je graf bez kružnic. Když je navíc souvislý, je to strom.",
+"graph|tf|1":"Kostra je strom, a strom z definice cyklus nemá.",
+"graph|tf|2":"TreeSet je postavený na červeno-černém stromu, což je vyvážený binární vyhledávací strom.",
+"dist|q|0":"Dijkstra jednou uzavřený vrchol už nepřepočítá, záporná hrana by ale mohla cestu zkrátit později. Pro záporné hrany je Bellman-Ford.",
+"dist|q|1":"OSPF hledá nejkratší cesty v síti routerů, GPS nejkratší trasu v silniční síti.",
+"dist|q|2":"Do každého vrcholu musíš vejít i z něj vyjít, proto potřebuje sudý stupeň. Pro otevřený tah smí mít lichý stupeň právě 2 vrcholy.",
+"dist|q|3":"Hierholzer projde každou hranu právě jednou, takže O(E).",
+"dist|q|4":"BFS prochází po vrstvách podle vzdálenosti, takže cíl najde nejmenším počtem hran.",
+"dist|q|5":"Edmonds-Johnson pro smíšené grafy kombinuje Dijkstru a Bellman-Forda.",
+"dist|tf|2":"Prioritní fronta (halda) mu vždy vydá vrchol s nejmenší dosavadní vzdáleností.",
+"ai1|q|0":"g(n) = skutečně ušlá cena od startu, h(n) = odhad zbývající cesty, f(n) = g(n) + h(n).",
+"ai1|q|1":"Admisibilní heuristika nikdy nepřecení skutečnou cenu, takže A* nepřeskočí lepší cestu.",
+"ai1|q|2":"John Searle (1980) chtěl ukázat, že manipulace se symboly podle pravidel neznamená porozumění.",
+"ai1|q|3":"Turing popsal svůj test v roce 1950 v článku Computing Machinery and Intelligence.",
+"ai1|q|4":"Na začátku jsou obě nádoby prázdné, tedy (0, 0). Cílem je typicky dostat 4 l do pětilitrové.",
+"ai1|q|5":"MYCIN (70. léta, Stanford) diagnostikoval bakteriální infekce a doporučoval antibiotika.",
+"ai1|q|6":"DENDRAL určoval strukturu chemických sloučenin z hmotnostní spektrometrie.",
+"ai1|q|7":"BFS nepoužívá žádnou znalost o cíli (heuristiku). A* a Greedy Best-First jsou informované.",
+"ai1|tf|1":"Obojí umí jen úzce vymezený úkol, žádné obecné myšlení – to je slabá AI.",
+"ai1|tf|2":"Greedy jde vždy za nejlepším odhadem h(n) a ignoruje ušlou cenu g(n), proto může najít delší cestu.",
+"ai1|tf|3":"WordNet propojuje slova vztahy jako synonymum, nadřazený a podřazený pojem – to je sémantická síť.",
+"ai2|q|1":"CNN pomocí konvolučních filtrů zachytí lokální vzory (hrany, tvary) v obraze.",
+"ai2|q|2":"Transformer místo rekurence používá attention, takže zpracuje celou sekvenci paralelně.",
+"ai2|q|3":"Potomek vezme začátek R1 (110) a konec R2 (0111) = 1100111.",
+"ai2|q|4":"Kratší trasa je lepší, ale fitness se maximalizuje, proto se použije převrácená hodnota délky.",
+"ai2|q|6":"U TSP musí každé město zůstat právě jednou. OX, PMX a CX zachovají platnou permutaci, jednobodové křížení ne.",
+"ai2|q|7":"Kognitivní vědy spojují psychologii, filosofii mysli, lingvistiku, neurovědy, AI a antropologii.",
+"ai2|q|8":"Schéma je typická struktura situace (scénář) – návštěva restaurace: příchod, objednávka, jídlo, placení.",
+"ai2|q|9":"Ztrátová funkce měří rozdíl výstupu a správné hodnoty. MSE se používá pro regresi, cross-entropy pro klasifikaci.",
+"ai2|tf|1":"GRU má jen dvě brány (update a reset) místo tří u LSTM, proto je jednodušší a rychlejší.",
+"ai2|tf|2":"GA je heuristika – může uvíznout v lokálním optimu. Mutace to jen zmírňuje.",
+"ai2|tf|3":"SOM si sama uspořádá data do mapy podle podobnosti, bez správných odpovědí.",
+"ai2|tf|4":"CRUM chápe mysl jako výpočetní systém: reprezentace jsou data, procedury jsou algoritmy nad nimi.",
+};
+
+// t: [pojem, definice]  q: [otázka, správně, [špatně...], vysvětlení]  tf: [tvrzení, pravda?, vysvětlení]
+const DATA1 = [
+{id:"fp",n:1,title:"Funkcionální programování",icon:"λ",
+t:[
+["Imperativní paradigma","Programátor určuje JAK – krok za krokem; příkazy, smyčky, změna stavu (C, Java)"],
+["Deklarativní paradigma","Popisuje CO má být provedeno, ne jak (SQL, HTML, Prolog)"],
+["Čistá funkce","Pro stejné vstupy vždy stejný výstup a nemá vedlejší efekty"],
+["Immutability","Jednou vytvořenou hodnotu nelze změnit – vytváří se nová kopie"],
+["Funkce vyššího řádu","Přijímá jiné funkce jako argumenty nebo funkci vrací"],
+["Referenční transparentnost","Výraz lze nahradit jeho výsledkem beze změny chování programu"],
+["Eager evaluation","Aplikativní pořadí – argumenty se vyhodnotí hned, před voláním funkce"],
+["Lazy evaluation","Normální pořadí – argumenty se vyhodnotí až když jsou potřeba"],
+["Call-by-need","Jako call-by-name, ale výsledek se uloží a nepřepočítává (Haskell)"],
+["Částečná aplikace","Předvyplnění některých argumentů → nová funkce s menším počtem parametrů"],
+["Intenzionální zápis seznamu","[výraz | generátor, podmínka], např. [x^2 | x <- [1..10], even x]"],
+["Parametrický polymorfismus","Obecný typ, např. List[T]"],
+["Ad-hoc polymorfismus","Přetížení funkcí – + funguje pro čísla i řetězce"],
+],
+q:[
+["Které paradigma popisuje CO má být dosaženo, ne jak?","Deklarativní",["Imperativní","Procedurální","Objektové"],"Deklarativní styl (SQL, HTML, Prolog) popisuje výsledek."],
+["Co platí pro čistou funkci?","Stejný vstup → stejný výstup, žádné vedlejší efekty",["Smí měnit globální proměnné","Vždy je rekurzivní","Musí vracet funkci"],"Determinismus + bez vedlejších efektů."],
+["Jakou redukční strategii používá Haskell?","Call-by-need (líné vyhodnocení s uložením výsledku)",["Eager evaluation","Call-by-value","Call-by-reference"],"Haskell je líný a výsledky si pamatuje = call-by-need."],
+["Co vrátí applyTwice(square, 2)?","16",["4","8","32"],"square(square(2)) = square(4) = 16."],
+["V jakém formálním systému má FP kořeny?","Lambda kalkul (30. léta 20. stol.)",["Predikátová logika 1. řádu","Turingův stroj","Relační algebra"],"Lambda kalkul – Alonzo Church."],
+["Proč f(1, 1/0) v Pythonu spadne, ale v Haskellu ne?","Python vyhodnocuje argumenty dychtivě (eager), Haskell líně",["Haskell nemá dělení nulou","Python nemá funkce vyššího řádu","Haskell ignoruje chyby"],"Lazy evaluation nevyhodnotí nepoužitý argument."],
+["Nevýhoda call-by-need oproti call-by-name?","Vyšší paměťová náročnost",["Opakované výpočty","Nelze použít s nekonečnými strukturami","Neumí rekurzi"],"Ukládá si výsledky → paměť."],
+["Co je numbers.push(4) z pohledu FP?","Mutace stavu – porušení immutability",["Čistá funkce","Částečná aplikace","Referenčně transparentní výraz"],"Funkcionálně: [...numbers, 4]."],
+["Která funkce NENÍ referenčně transparentní?","getRandom()",["add(a,b)","square(n)","double(x)"],"Pokaždé vrátí jinou hodnotu."],
+],
+tf:[
+["Lazy evaluation umožňuje práci s nekonečnými strukturami.",true,"Prvky se počítají až při potřebě."],
+["Eager evaluation je typická pro Haskell.",false,"Haskell je líný; eager je Python, Java, C."],
+["Subtypový polymorfismus souvisí s dědičností v OOP.",true,""],
+["Většina jazyků podporuje výhradně jedno paradigma.",false,"Většina je multiparadigmatická (Python, JS, Scala)."],
+["Call-by-name dosazuje argumenty do těla funkce opakovaně.",true,""],
+]},
+{id:"lp",n:2,title:"Logické programování",icon:"⊢",
+t:[
+["Fakt","Základní pravda o světě bez podmínek, např. clovek(sokrates)."],
+["Pravidlo","Vztah „pokud…, pak…“, např. smrtelny(X) :- clovek(X)."],
+["Dotaz","Otázka systému, např. ?- smrtelny(sokrates)."],
+["Proměnná v Prologu","Začíná velkým písmenem, představuje neznámou hodnotu"],
+["Unifikace","Porovnání dvou výrazů a hledání hodnot proměnných, které je činí stejnými"],
+["Backtracking","Zpětné prohledávání – při neúspěchu se vrátí k poslednímu rozhodnutí a zkusí jinou cestu"],
+["Reverzibilita","Pravidla lze spouštět oběma směry – hledat výstup i vstup"],
+["Cut (!)","Zastaví backtracking, zabrání nechtěným alternativám"],
+["Anonymní proměnná _","Hodnota, která nás nezajímá a neukládáme ji"],
+["assertz/1","Přidá fakt na konec dynamické databáze"],
+["retract/1","Odebere fakt z databáze"],
+["consult/1","Načte soubor s databází (.pl)"],
+["Datalog","Logický jazyk pro databáze"],
+],
+q:[
+["Nejznámější jazyk logického programování?","Prolog",["Haskell","Lisp","Erlang"],"Programming in Logic."],
+["Co znamená clovek(Marek). s velkým M?","Marek je proměnná, ne konstanta",["Je to chyba syntaxe","Je to pravidlo","Je to fakt o Markovi"],"Velké písmeno = proměnná."],
+["V jakém pořadí Prolog prochází pravidla?","Shora dolů a zleva doprava",["Zdola nahoru","Náhodně","Podle priority"],""],
+["K čemu slouží cut (!)?","Zastaví backtracking",["Smaže fakt","Ukončí program","Přidá fakt"],"Používá se pro optimalizaci."],
+["Který predikát přidá fakt na ZAČÁTEK databáze?","asserta/1",["assertz/1","retract/1","consult/1"],"asserta = začátek, assertz = konec."],
+["Co vrátí ?- soucin(3, Y, 12). při soucin(X,Y,Z) :- Z is X*Y?","Chybu – is není reverzibilní, pokud pravá strana obsahuje nenavázanou proměnnou",["Y = 4","false","Y = 36"],"Pozor: v poznámkách je to uvedeno jako příklad reverzibility, ale v reálném Prologu 'is' vyžaduje navázané proměnné vpravo – přesně to je 'omezení reverzibility' u aritmetiky."],
+["Kdy začalo logické programování?","Počátek 70. let",["50. léta","90. léta","30. léta"],"Z automatického dokazování vět a AI."],
+["Co Prolog NEMÁ v tradičním smyslu?","for, while, if – používá rekurzi a pravidla",["Proměnné","Rekurzi","Dotazy"],""],
+],
+tf:[
+["Fakta v Prologu mají vždy podmínky.",false,"Fakta jsou bezpodmínečně pravdivá."],
+["Predikáty write a read jsou jednosměrné.",true,"Omezení reverzibility."],
+["Backtracking se hodí pro úlohu osmi dam a sudoku.",true,""],
+["Dynamická databáze se během běhu programu nemění.",false,"Mění se pomocí assert/retract."],
+["Logické programování je deklarativní.",true,""],
+]},
+{id:"bpm",n:3,title:"Modelování firemních procesů",icon:"⇄",
+t:[
+["Proces","Posloupnost činností přetvářející vstupy na výstupy"],
+["Událost","Spouští, ukončuje nebo přerušuje proces"],
+["Brána (gateway)","Rozhodování v toku procesu (XOR, AND, OR)"],
+["Swimlanes","Bazény (pool) a dráhy (lane) – vymezení odpovědnosti"],
+["Flow objects","Události, aktivity, brány"],
+["Connecting objects","Sekvenční tok, tok zpráv, asociace"],
+["Artifacts (BPMN)","Data, skupiny, poznámky"],
+["Include","Povinné propojení typových úloh"],
+["Extend","Volitelné rozšíření typové úlohy"],
+["Sekvenční diagram","Komunikace mezi entitami v čase"],
+["Funkční požadavek","Konkrétní požadavek na funkci systému"],
+["Nefunkční požadavek","Prostředí, výkon, zálohování apod. – věci „okolo“"],
+],
+q:[
+["Co znamená BPMN?","Business Process Model and Notation",["Business Process Management Network","Basic Process Modeling Notation","Business Planning Model Notation"],""],
+["Která brána vybírá právě jednu cestu?","XOR",["AND","OR","Merge"],""],
+["Do které skupiny BPMN patří pool a lane?","Swimlanes",["Flow objects","Artifacts","Connecting objects"],""],
+["Vztah mezi typovými úlohami, který je VOLITELNÝ?","extend",["include","asociace","generalizace"],""],
+["Který diagram ukazuje vztahy aktérů a systému?","Diagram případů užití (Use Case)",["Sekvenční","Aktivitní","Procesní"],""],
+["Co NENÍ přínos modelování procesů?","Automatické generování zdrojového kódu",["Identifikace slabých míst","Uchování know-how","Podpora certifikací ISO"],""],
+],
+tf:[
+["Synchronizace = čekání na dokončení více paralelních větví.",true,""],
+["Jak často se dělá záloha je funkční požadavek.",false,"Je to nefunkční požadavek."],
+["Aktér může být i systém, nejen osoba.",true,""],
+]},
+{id:"oop",n:4,title:"Princip objektového návrhu",icon:"◈",
+t:[
+["Třída","Šablona pro tvorbu objektů – definuje atributy a metody"],
+["Objekt","Instance třídy, konkrétní entita"],
+["Abstrakce","Vyjádření jen podstatných vlastností, skrytí detailů implementace"],
+["Zapouzdření","Skrytí interních dat; přístup přes veřejné metody (public/private/protected)"],
+["Dědičnost","Třída přebírá vlastnosti a metody supertřídy"],
+["Polymorfismus","Objekty různých tříd zaměnitelné přes stejné rozhraní"],
+["Identita","Odlišuje objekt od ostatních i při stejných atributech (adresa v paměti)"],
+["Soudržnost (cohesion)","Části třídy spolu logicky souvisí – třída dělá jednu věc dobře"],
+["Synergie","Spolupráce objektů k dosažení komplexního chování"],
+["God object","Objekt s příliš mnoha odpovědnostmi"],
+["Doména","Oblast reálného světa, kterou modelujeme"],
+],
+q:[
+["Které jazyky v 80. letech položily základ OOP?","Smalltalk a C++",["Java a C#","Pascal a C","Lisp a Prolog"],""],
+["Tři pilíře OOP?","Zapouzdření, dědičnost, polymorfismus",["Abstrakce, identita, doména","Třída, objekt, metoda","Soudržnost, synergie, zatížení"],""],
+["Co je žádoucí?","Vysoká soudržnost",["Nízká soudržnost","God object","Veřejné atributy"],""],
+["Metoda vypocitej() funguje v každé třídě jinak, ale volá se stejně. To je…","Polymorfismus",["Zapouzdření","Dědičnost","Abstrakce"],""],
+["Zatížení objektu znamená…","Množství jeho odpovědností",["Velikost v paměti","Počet instancí","Počet atributů"],"Pozor na god object."],
+],
+tf:[
+["Třída = typ, objekt = konkrétní případ.",true,""],
+["Procedurální přístup spojuje data a logiku do objektů.",false,"Odděluje je; objektový je spojuje."],
+["Dva objekty se stejnými atributy mají stejnou identitu.",false,"Identita je nezávislá na atributech."],
+]},
+{id:"agile",n:5,title:"Klasické a agilní metodiky",icon:"⟳",
+t:[
+["Vodopád","Lineární sekvenční model – další fáze začne až po skončení předchozí"],
+["Iterativní model","Vývoj ve více iteracích, každá přináší částečně funkční produkt"],
+["RUP","Iterativní metodika Rational/IBM, silně orientovaná na UML"],
+["Fáze RUP","Inception → Elaboration → Construction → Transition"],
+["XP","Extreme Programming – TDD, pair programming, CI, refactoring"],
+["Pair programming","2 vývojáři, 1 počítač"],
+["Sprint","Časově ohraničené období 1–4 týdny, výstupem je Increment"],
+["Product Owner","Definuje, co se má vyvíjet, spravuje backlog"],
+["Scrum Master","Kouč a facilitátor týmu"],
+["Product Backlog","Seznam všeho, co se má udělat"],
+["Increment","Hotová, otestovaná část produktu"],
+["WIP limit","Omezení počtu rozpracovaných úkolů (Kanban)"],
+["TDD cyklus","Red → Green → Refactor"],
+],
+q:[
+["Kolik trvá Daily Scrum?","15 minut",["30 minut","1 hodinu","5 minut"],""],
+["Obvyklá délka sprintu?","1–4 týdny",["1–3 dny","2–3 měsíce","Libovolná, mění se"],"Neměla by se v průběhu měnit."],
+["Která fáze RUP rozpracovává architekturu?","Elaboration",["Inception","Construction","Transition"],""],
+["Co dělá vývojář ve fázi RED v TDD?","Napíše test, který neprojde",["Opraví kód","Refaktoruje","Nasadí do produkce"],""],
+["Agilní manifest upřednostňuje…","Fungující software před rozsáhlou dokumentací",["Dodržení plánu před reakcí na změnu","Procesy před lidmi","Kontrakt před spoluprací"],""],
+["Kanban oproti Scrumu…","Nemá pevné sprinty – nepřetržitý tok",["Má role PO a SM","Trvá vždy 2 týdny","Nepoužívá tabuli"],""],
+["Pro jaký projekt je vhodný vodopád?","S jasně definovanými a stabilními požadavky",["S měnícími se požadavky","Výzkumný projekt","Startup s nejasným produktem"],""],
+["Collective code ownership je praktika…","XP",["RUP","Vodopádu","Kanbanu"],""],
+],
+tf:[
+["Během sprintu se mění prioritní úkoly podle potřeby.",false,"Tým se drží naplánovaného."],
+["RUP je vhodný pro malé týmy.",false,"Je složitý a nákladný na zavedení."],
+["Retrospektiva hodnotí spolupráci a proces.",true,""],
+["Kanban je vhodný pro support a helpdesk.",true,""],
+]},
+{id:"agent",n:6,title:"Agentické systémy",icon:"🤖",
+t:[
+["Agent","Autonomní entita, která vnímá prostředí a působí na něj za účelem cíle"],
+["Autonomie","Jedná bez přímého zásahu člověka"],
+["Reaktivita","Vnímá prostředí a včas reaguje na změny"],
+["Proaktivita","Jedná cíleně, přebírá iniciativu"],
+["BDI","Beliefs, Desires, Intentions – deliberativní architektura"],
+["ReAct","Reason + Act: myšlenka → akce → pozorování"],
+["RAG","Doplnění LLM o vyhledané znalosti (dlouhodobá paměť)"],
+["MCP","Model Context Protocol – standard pro připojení nástrojů a dat"],
+["Workflow","LLM a nástroje řízené předem definovanými cestami v kódu"],
+["Prompt chaining","Sekvence kroků, výstup jednoho = vstup dalšího"],
+["Routing","Klasifikace vstupu a přesměrování na specializovaný postup"],
+["Orchestrator–workers","Centrální LLM dělí úlohu a deleguje ji workerům"],
+["Evaluator–optimizer","Jeden LLM generuje, druhý hodnotí ve smyčce"],
+["Prompt injection","Škodlivé instrukce ve vstupních datech převezmou kontrolu nad agentem"],
+["Human-in-the-loop","Schválení nevratných akcí člověkem"],
+],
+q:[
+["Který typ agenta maximalizuje funkci užitku?","Užitkově orientovaný",["Cílově orientovaný","Jednoduchý reflexní","Reflexní s modelem"],""],
+["Co je krátkodobá paměť agenta?","Kontextové okno",["Vektorová databáze","Soubory na disku","Fine-tuning"],""],
+["Kdy zvolit workflow místo agenta?","U dobře definovaných, opakujících se úloh",["U otevřených úloh s neznámým počtem kroků","Vždy","Když chceme nejvyšší flexibilitu"],""],
+["Paralelizace typu voting znamená…","Stejná úloha vícekrát, výsledek hlasováním",["Nezávislé podúlohy paralelně","Jeden generuje, druhý hodnotí","Přesměrování podle typu"],""],
+["Protokol pro komunikaci agentů?","A2A / FIPA ACL",["HTTP/2","SMTP","TCP"],""],
+["Hlavní obrana proti nevratným akcím?","Nejmenší oprávnění, sandbox, human-in-the-loop",["Delší prompt","Vyšší teplota modelu","Více agentů"],""],
+["Čtyři vlastnosti agenta dle Wooldridge & Jennings?","Autonomie, reaktivita, proaktivita, sociální schopnost",["Racionalita, adaptivita, perzistence, mobilita","Vnímání, plánování, akce, učení","Model, nástroje, paměť, prostředí"],""],
+],
+tf:[
+["Samotné LLM má trvalou paměť a přístup k aktuálním datům.",false,"Doplňuje se nástroji, pamětí a RAG."],
+["Doporučuje se začít co nejjednodušším řešením a agenta přidat až když je potřeba.",true,""],
+["Multi-agentové systémy mají nižší náklady na tokeny.",false,"Vyšší náklady, složitá koordinace."],
+["Reaktivní architektura nepoužívá symbolické uvažování.",true,""],
+]},
+];
+
+const DATA2 = [
+{id:"db",n:7,title:"Databáze, databázový systém",icon:"🗄",
+t:[
+["DBS","SŘBD + DBA + DB"],
+["SŘBD","Software pro efektivní práci s daty (DBMS)"],
+["Administrátor databáze","Technická stránka DB, zálohování, fyzické uložení dat"],
+["Hierarchický model","Stromová struktura, pouze vztahy 1:N, málo flexibilní"],
+["Síťový model","Umožňuje M:N, CODASYL, obtížný návrh a údržba"],
+["Projekce","Výběr vybraných ATRIBUTŮ (sloupců) – SELECT Jmeno, Vek"],
+["Selekce","Výběr ZÁZNAMŮ (řádků) splňujících podmínku – WHERE"],
+["Inner Join","Jen řádky, které mají parťáka v obou tabulkách"],
+["Left Outer Join","Všechny řádky z levé tabulky, chybějící doplní NULL"],
+["Semi-join","Řádky z první tabulky, které mají shodu ve druhé; vrací jen sloupce první"],
+["DDL","CREATE, ALTER, DROP, TRUNCATE – struktura"],
+["DML","SELECT, INSERT, UPDATE, DELETE – data"],
+["DCL","GRANT, REVOKE – práva"],
+["TCL","COMMIT, ROLLBACK, SAVEPOINT, SET TRANSACTION"],
+["Atomicita","Transakce je nedělitelná – vše nebo nic"],
+["Izolovanost","Transakce se navzájem neovlivňují"],
+["Trvalost (Durability)","Potvrzené změny zůstanou uloženy"],
+],
+q:[
+["Do které skupiny SQL patří TRUNCATE?","DDL",["DML","DCL","TCL"],"Mění strukturu na úrovni datových bloků, ne řádek po řádku."],
+["Rozdíl DELETE (všech řádků) vs TRUNCATE?","DELETE maže řádek po řádku s logem → pomalejší",["TRUNCATE smaže i strukturu tabulky","DELETE je DDL","Žádný rozdíl"],""],
+["Co udělá DROP TABLE?","Nenávratně smaže tabulku včetně struktury",["Smaže jen data","Smaže jeden řádek","Odebere práva"],""],
+["Který příkaz odebere uživateli práva?","REVOKE",["GRANT","DROP","ROLLBACK"],""],
+["Co umožňuje SAVEPOINT?","Vrátit se v transakci jen k záchytnému bodu",["Uložit tabulku na disk","Zálohovat databázi","Potvrdit transakci"],""],
+["Které písmeno ACID říká „vše nebo nic“?","A – Atomicita",["C – Konzistence","I – Izolovanost","D – Trvalost"],""],
+["Operace relační algebry odpovídající WHERE?","Selekce",["Projekce","Kartézský součin","Sjednocení"],""],
+["Který join vrátí naprosto vše z obou tabulek?","Full Outer Join",["Inner Join","Left Join","Semi-join"],""],
+["Natural Join spojuje tabulky podle…","Stejně pojmenovaných sloupců",["Explicitní podmínky ON","Pořadí řádků","Primárního klíče vždy"],""],
+],
+tf:[
+["UPDATE bez WHERE přepíše celou tabulku.",true,""],
+["Hierarchický model podporuje vztahy M:N.",false,"Jen 1:N; M:N umí síťový a relační."],
+["Projekce vybírá řádky.",false,"Projekce = sloupce, selekce = řádky."],
+["Po COMMIT jsou změny vidět všem.",true,""],
+]},
+{id:"er",n:8,title:"Konceptuální modelování",icon:"◇",
+t:[
+["ER model","Popisuje entity, vztahy a atributy nezávisle na DBS"],
+["Entita","Objekt reálného světa"],
+["Entitní množina","Množina entit stejného typu se stejnými atributy"],
+["Atribut","Vlastnost entity, ideálně atomická"],
+["EER","Enhanced ER – podtřídy/nadtřídy, agregace/kompozice"],
+["Relace","Podmnožina kartézského součinu množin"],
+["Primární klíč","Jednoznačný identifikátor záznamu"],
+["Kandidátní klíč","Potenciální primární klíč; nevyužitý = alternativní klíč"],
+["Cizí klíč","Odkaz na primární klíč jiné tabulky"],
+["Kardinalita","Max. počet vztahů: 1:1, 1:N, M:N"],
+["Participace","Zda je účast ve vztahu povinná (NOT NULL)"],
+["1NF","Všechny hodnoty atomické – žádné seznamy v buňce"],
+["2NF","1NF + žádná částečná závislost na složeném klíči"],
+["3NF","2NF + žádné tranzitivní závislosti mezi neklíčovými atributy"],
+],
+q:[
+["Jak se v Chenově notaci kreslí vztah?","Kosočtverec",["Obdélník","Elipsa","Šipka"],"Entita = obdélník."],
+["Sloupec Zapsane_Predmety = „Matematika, Fyzika“ porušuje…","1NF",["2NF","3NF","BCNF"],"Hodnota není atomická."],
+["Kredity_Za_Predmet závisí jen na Predmet_ID v tabulce s klíčem (Student_ID, Predmet_ID). Porušuje…","2NF",["1NF","3NF","Nic"],"Částečná závislost na složeném klíči."],
+["Nazev_Fakulty závisí na Fakulta_ID v tabulce Student. Porušuje…","3NF",["1NF","2NF","Nic"],"Tranzitivní závislost."],
+["Kdy řešíme 2NF?","Jen když má tabulka složený primární klíč",["Vždy","Jen u tabulek bez klíče","Jen u M:N"],""],
+["Jak se v relačním modelu realizuje vztah M:N?","Přídavnou (vazební) tabulkou",["Jedním cizím klíčem","Nelze","Atributem typu pole"],""],
+],
+tf:[
+["V relační tabulce záleží na pořadí řádků.",false,""],
+["Tabulka nesmí mít duplicitní řádky.",true,""],
+["V praxi se normalizuje většinou do 3NF.",true,""],
+]},
+{id:"cg",n:9,title:"Matematické principy grafiky",icon:"⊞",
+t:[
+["Translace","Posun o vektor – mění polohu, ne tvar"],
+["Škálování","Změna velikosti podle koeficientů v osách"],
+["Zkosení (shear)","Posun jednoho rozměru úměrně druhému – obdélník → rovnoběžník"],
+["Homogenní souřadnice","[x,y,1] / [x,y,z,1] – všechny transformace včetně translace jako násobení maticí"],
+["Clipping","Odstranění geometrie mimo zobrazovací objem"],
+["View frustum","Zobrazovací objem – komolý jehlan (perspektiva), kvádr (ortogonální)"],
+["Clip-space","Prostor po projekční transformaci, před perspektivním dělením"],
+["Modelová transformace","Lokální souřadnice objektu → světové"],
+["Pohledová transformace","Světové souřadnice → soustava kamery"],
+["Viewport transformace","NDC (-1;1) → souřadnice obrazovky"],
+["gluLookAt","Kamera z pozice (eye), cíle (center) a up-vektoru"],
+["gluPerspective","Projekční matice z fov, aspect, near, far"],
+],
+q:[
+["Proč se zavádějí homogenní souřadnice?","Aby i translace šla vyjádřit maticovým násobením",["Kvůli barvám","Pro rychlejší rasterizaci","Kvůli texturám"],""],
+["Jaká je matice transformace ve 3D?","4×4",["3×3","2×2","4×3"],""],
+["Algoritmus ořezu úsečky ve 2D?","Cohen–Sutherland / Liang–Barsky",["Bresenham","Phong","Z-buffer"],""],
+["Správné pořadí zobrazovacího řetězce?","Model → View → Projection → Viewport",["View → Model → Viewport → Projection","Projection → Model → View → Viewport","Viewport → Projection → View → Model"],""],
+["Tvar frustumu v perspektivní projekci?","Komolý jehlan",["Kvádr","Koule","Válec"],""],
+["Co kameru NEdefinuje?","Barva pozadí",["Pozice","Směr pohledu","Up-vektor"],""],
+],
+tf:[
+["Zrcadlení mění orientaci objektu.",true,""],
+["Translace mění tvar objektu.",false,""],
+["Pro FullHD převádí viewport transformace x do rozsahu 0–1920.",true,""],
+]},
+{id:"ioc",n:10,title:"Inversion of Control",icon:"⇆",
+t:[
+["IoC","Obrácení řízení – framework/kontejner vytváří objekty a předává je kódu"],
+["Hollywoodský princip","„Don't call us, we'll call you“"],
+["Tight coupling","Třída si sama vytváří závislosti (new V8Motor())"],
+["DI","Dependency Injection – konkrétní vzor, jak realizovat IoC"],
+["Service Locator","Alternativní způsob realizace IoC k DI"],
+["Constructor injection","Závislosti při vzniku objektu – nejdoporučovanější"],
+["Setter injection","Závislosti dodatečně přes settery – pro volitelné"],
+["Field injection","Přímo do privátního atributu (@Autowired) – dnes se nedoporučuje"],
+["Mock objekt","Falešný objekt simulující skutečnou komponentu při testování"],
+],
+q:[
+["Vztah IoC a DI?","IoC je princip, DI je konkrétní technika",["Jsou to synonyma","DI je princip, IoC technika","Nemají spolu nic společného"],""],
+["Nejdoporučovanější způsob injekce?","Přes konstruktor",["Přes atribut","Přes setter","Globální proměnná"],""],
+["Nejčastější praktický důvod pro IoC?","Snadné testování pomocí mock objektů",["Rychlejší běh","Menší binárka","Méně tříd"],""],
+["Který framework NENÍ IoC kontejner?","jQuery",["Spring","NestJS","Angular"],""],
+["Proč se ustupuje od field injection?","Kód se špatně testuje bez frameworku",["Je pomalá","Neumí Java","Nelze použít s interface"],""],
+],
+tf:[
+["ASP.NET Core má DI kontejner zabudovaný.",true,""],
+["Při IoC si třída sama vytváří své závislosti.",false,"To je tight coupling."],
+["Nette obsahuje DI kontejner.",true,""],
+]},
+{id:"rest",n:11,title:"REST a mikroslužby",icon:"⇌",
+t:[
+["REST","Representational State Transfer – styl orientovaný na zdroje"],
+["SOAP","Formální protokol, XML, orientovaný na operace"],
+["Bezstavovost","Každý požadavek nese vše potřebné, server si nepamatuje klienta"],
+["Mikroslužby","Malé nezávislé služby s jasnou odpovědností"],
+["WSDL","Popis operací a protokolů webové služby"],
+["UDDI","Registr webových služeb pro jejich objevování"],
+["ESB","Enterprise Service Bus – zprostředkování komunikace mezi službami"],
+["SOAP Envelope","Obálka – začátek a konec zprávy"],
+["JWT","JSON Web Token – podepsaný token s payloadem"],
+["OAuth 2.0","Standard pro delegovanou autorizaci"],
+["BOLA","API neověří, zda má uživatel právo na konkrétní ID objektu"],
+["CORS","Pravidla, které domény smí volat API z prohlížeče"],
+["WS-Security","Zabezpečení na úrovni zprávy (SOAP)"],
+["XXE","Škodlivé XML entity donutí server číst lokální soubory"],
+["Billion Laughs","XML bomba – vnořené entity zahltí paměť (DoS)"],
+["Replay útok","Znovupoužití zachycené platné zprávy"],
+],
+q:[
+["Kterou metodou se v REST vytváří nový zdroj?","POST",["GET","PUT","DELETE"],""],
+["Jaký status vrátí typicky úspěšné DELETE bez obsahu?","204 No Content",["200 OK s tělem vždy","404","301"],""],
+["Formát zpráv SOAP?","Pouze XML",["JSON","Libovolný","YAML"],""],
+["SOAP může běžet i přes…","SMTP, JMS",["Jen HTTP","Jen WebSocket","Jen TCP bez aplikační vrstvy"],""],
+["Kam bezpečně uložit JWT na frontendu?","Do HttpOnly cookie",["Do localStorage","Do URL","Do globální proměnné"],"Obrana proti XSS."],
+["Obrana proti brute-force a DoS u REST?","Rate limiting / throttling",["CORS","Delší URL","Basic Auth"],""],
+["Obrana proti replay útokům v SOAP?","Časová razítka a unikátní ID zpráv",["Delší WSDL","Komprese","JSON"],""],
+["Nevýhoda mikroslužeb?","Složitější orchestrace, monitoring a komunikace",["Horší škálovatelnost","Jeden jazyk pro všechny služby","Chyba shodí celý systém"],""],
+["Basic Auth je bezpečná jen…","S HTTPS",["Vždy","Nikdy","Jen v SOAP"],"Base64 není šifrování."],
+],
+tf:[
+["SOAP se často používá v bankách díky WS-Security.",true,""],
+["XML Encryption umí zašifrovat jen část zprávy.",true,""],
+["Veřejně dostupné WSDL je bezpečnostně neutrální.",false,"Dává útočníkovi mapu API."],
+["Server v REST si pamatuje přihlášeného uživatele.",false,"REST je bezstavový."],
+]},
+{id:"rast",n:12,title:"Rasterizace",icon:"▦",
+t:[
+["Rastr","Pravoúhlá síť pixelů tvořící obraz"],
+["Barevná hloubka","Počet bitů na pixel (8 bit = 256 barev, 24 bit ≈ 16,7 mil.)"],
+["HSV","Odstín, sytost, jas – nejblíže lidskému vnímání"],
+["CMYK","Cyan, magenta, yellow, key (černá) – tisk"],
+["DDA","Triviální algoritmus úsečky: y = kx + q, desetinná čísla + zaokrouhlení"],
+["Bresenham","Úsečka jen celočíselně – predikce chyby, sčítání a posuny"],
+["Midpoint circle","Spočítá 1 oktant (0–45°), zbylých 7 zrcadlí"],
+["Seed fill","Semínkové vyplňování – šíření od pixelu na 4/8 sousedů"],
+["Scanline","Řádek přeřízne hrany, vyplní mezi lichým a sudým průsečíkem"],
+["Pattern fill","Vyplnění definovaným vzorem místo barvy"],
+],
+q:[
+["Proč je DDA v praxi pomalý?","Počítá s desetinnými čísly a dělením",["Kreslí jen svislé čáry","Používá rekurzi","Potřebuje Z-buffer"],""],
+["Jaké operace používá Bresenham?","Jen celočíselné: sčítání, odčítání, bitové posuny",["Sin a cos","Dělení","Odmocniny"],""],
+["Kolik oktantů kružnice midpoint algoritmus skutečně počítá?","1",["2","4","8"],""],
+["Nevýhoda seed fill?","Paměťová náročnost, rekurze → stack overflow",["Nefunguje v Malování","Potřebuje vrcholy polygonu","Neumí 4-okolí"],""],
+["Který algoritmus je základem rasterizace trojúhelníků ve 3D?","Scanline",["Seed fill","DDA","Flood fill"],""],
+["Kolik barev má 8bitový obraz (např. GIF)?","256",["16","65 536","16,7 mil."],""],
+],
+tf:[
+["Scanline pracuje s vrcholy polygonu, ne s jednotlivými pixely.",true,""],
+["Seed fill se běžně používá k vyplňování polygonů v 3D grafice.",false,""],
+["Scanline vyplňuje mezi sudým a lichým průsečíkem.",false,"Mezi LICHÝM a SUDÝM (1.–2., 3.–4.)."],
+]},
+{id:"scene",n:13,title:"Zobrazení prostorové scény",icon:"◭",
+t:[
+["Malířův algoritmus","Kreslí od nejvzdálenějšího po nejbližší; O(n log n) kvůli řazení"],
+["Z-buffer","Pixel se kreslí, jen pokud je blíž než uložená hodnota; O(n)"],
+["Ray casting","Paprsek pro každý pixel, hledá první průsečík"],
+["Ambientní složka","Rozptýlené světlo bez zdroje – stíny nejsou černé"],
+["Difúzní složka","Matná, Lambertův zákon – nejvíc světla při kolmém dopadu"],
+["Spekulární složka","Lesklý odlesk, závisí i na pozici kamery"],
+["Flat shading","Jedna barva na celý polygon – „disco koule“"],
+["Gouraud","Osvětlení ve vrcholech, interpoluje BARVY"],
+["Phong shading","Interpoluje NORMÁLY, osvětlení pro každý pixel"],
+["Vertex Buffer","Pole vrcholů v GPU (pozice, normály, UV)"],
+["Index Buffer","Pořadí indexů vrcholů – sdílené vrcholy se neukládají 2×"],
+["Frustum culling","Zahodí objekty mimo zorný jehlan"],
+["Backface culling","Zahodí stěny odvrácené od kamery (podle normály)"],
+["Occlusion culling","Zahodí objekty schované za jinými"],
+["LOD","Level of Detail – vzdálené objekty s méně polygony"],
+["Fragment shader","Zpracovává pixely – barva, textury, Phong"],
+],
+q:[
+["Kdy selhává malířův algoritmus?","Cyklické překrytí a pronikající se polygony",["U jednoho polygonu","U ortogonální projekce","Nikdy"],""],
+["Složitost Z-bufferu?","O(n) vzhledem k počtu pixelů",["O(n log n)","O(n²)","O(1)"],""],
+["Nevýhoda Z-bufferu?","Paměťová náročnost",["Neřeší pronikání polygonů","Musí řadit polygony","Je pomalý O(n²)"],""],
+["Úzký odlesk uprostřed velkého polygonu zmizí u…","Gouraudova stínování",["Phongova stínování","Ray tracingu","Žádného"],""],
+["Čtverec ze 2 trojúhelníků – kolik vrcholů ve VBO s indexbufferem?","4",["6","3","8"],""],
+["Který shader deformuje modely (vlnění vody)?","Vertex shader",["Fragment shader","Pixel buffer","Index buffer"],""],
+["Tři složky Phongova osvětlovacího modelu?","Ambientní, difúzní, spekulární",["Červená, zelená, modrá","Flat, Gouraud, Phong","Vertex, fragment, geometry"],""],
+],
+tf:[
+["Phongovo stínování je hardwarově nejnáročnější z klasických metod.",true,""],
+["Difúzní složka závisí na pozici kamery.",false,"To spekulární."],
+["Ray casting je základ ray tracingu.",true,""],
+]},
+{id:"img",n:14,title:"Obrazová data",icon:"🖼",
+t:[
+["Vzorkování","Převod spojitého obrazu na diskrétní mřížku"],
+["Kvantování","Převod spojité intenzity na konečný počet úrovní"],
+["Nyquistovo kritérium","Vzorkovací frekvence ≥ 2× prostorová frekvence"],
+["Aliasing","Artefakty z nedostatečného vzorkování – zubaté hrany"],
+["Supersampling","Výpočet ve vyšším rozlišení a zmenšení průměrováním"],
+["Low-pass filtr","Vyhlazuje, potlačuje šum a detaily"],
+["Ostřící filtr","Zvýrazní hrany: originál − vyhlazená verze"],
+["g = a·f + b","Lineární jasová transformace: a = kontrast, b = jas"],
+["Gamma korekce","Nelineární (mocninná) jasová transformace"],
+["Bilineární interpolace","Vážený průměr 4 pixelů (2×2)"],
+["Bikubická interpolace","16 pixelů (4×4), kubický splajn"],
+["Histogram","Četnost pixelů podle jasu; ztrácí prostorovou informaci"],
+["RLE","Kódování délek běhů stejných pixelů"],
+["JPEG","Ztrátová, DCT, YCbCr s podvzorkováním barev"],
+["PNG","Bezeztrátový, Deflate (LZ77 + Huffman), alfa kanál"],
+["GIF","LZW, max. 256 barev, animace"],
+["TIFF","Kontejner: více stránek, různé komprese – skeny, archivace"],
+],
+q:[
+["Kolik pixelů používá bilineární interpolace?","4",["1","9","16"],""],
+["Který formát je vhodný pro fotku, ale ne pro ostrý text?","JPEG",["PNG","GIF","BMP"],""],
+["Komprese v PNG?","Deflate (LZ77 + Huffman)",["DCT","RLE","Wavelet"],""],
+["Proč JPEG podvzorkovává Cb a Cr?","Oko hůř rozlišuje barevné detaily než jasové",["Kvůli průhlednosti","Je to bezeztrátové","Kvůli tisku"],""],
+["Který filtr nejlépe odstraní šum typu „sůl a pepř“?","Mediánový",["Ostřící","Lineární jasová transformace","Bikubický"],""],
+["Co je nevýhoda histogramu?","Ztrácí prostorovou informaci",["Je pomalý","Nelze jej zobrazit","Funguje jen pro RGB"],""],
+["Který formát je bez komprese?","BMP",["PNG","JPEG","GIF"],""],
+],
+tf:[
+["Dva různé obrázky mohou mít stejný histogram.",true,""],
+["Huffmanovo kódování je ztrátové.",false,""],
+["Parametr b v g = a·f + b ovlivňuje kontrast.",false,"b = jas (offset), a = kontrast."],
+]},
+];
+
+const DATA3 = [
+{id:"web",n:15,title:"Webové aplikace",icon:"🌐",
+t:[
+["Prezentačně orientovaná aplikace","Generuje (X)HTML/XML výstup – servlety, JSP"],
+["Servisně orientovaná aplikace","Nabízí vzdálený přístup ke službám – SOAP, REST"],
+["Servlet","Serverový modul obsluhující HTTP požadavky: init(), service(), destroy()"],
+["JSP","Java kód v HTML, překládá se na servlet"],
+["Monolit","UI, logika i DB v jednom nasaditelném celku"],
+["3-tier","Prezentační, aplikační a datová vrstva"],
+["WebSocket","Perzistentní obousměrná komunikace v reálném čase"],
+["AJAX / Fetch","Načítání dat na pozadí bez reloadu (SPA)"],
+["Routing","Jak server zpracuje požadavek podle URL a HTTP metody"],
+["Session","Stav na serveru, identifikace session ID v cookie"],
+["Idempotence","Opakované provedení má stejný výsledný efekt"],
+["PATCH","Částečná aktualizace"],
+["Autentizace","Ověření totožnosti – kdo jsi"],
+["Autorizace","Určení oprávnění – co smíš"],
+["RBAC","Oprávnění podle rolí"],
+["ABAC","Oprávnění podle atributů uživatele"],
+["CSRF","Podvržený požadavek jménem přihlášeného uživatele – řeší CSRF token"],
+["XSS","Spuštění škodlivého skriptu ve stránce – řeší escapování a CSP"],
+["SQL Injection","Vstup vložen přímo do dotazu – řeší parametrizované dotazy/ORM"],
+["OWASP Top 10","Přehled nejčastějších zranitelností webu"],
+["E2E test","Testování z pohledu uživatele – Selenium, Cypress"],
+],
+q:[
+["Která metoda servletu se volá pro obsluhu každého requestu?","service()",["init()","destroy()","main()"],""],
+["Která HTTP metoda NENÍ idempotentní?","POST",["GET","PUT","DELETE"],""],
+["Obrana proti XSS?","Escapování výstupu + Content-Security-Policy",["CSRF token","Parametrizované dotazy","Rate limiting"],""],
+["Obrana proti SQL injection?","Parametrizované dotazy / ORM",["Escapování HTML","HttpOnly cookie","HSTS"],""],
+["Jak ukládat hesla?","Hashovaná (např. BCrypt)",["Šifrovaná AES","V plaintextu","Base64"],""],
+["Atributy cookie proti session hijackingu?","HttpOnly a Secure",["Path a Domain","Max-Age=0","SameSite=None"],""],
+["Hlavička vynucující HTTPS?","Strict-Transport-Security",["Content-Type","Accept","X-Powered-By"],""],
+["Asynchronní zpracování v Javě?","CompletableFuture, Spring WebFlux",["Servlet init()","JSP","Thymeleaf"],""],
+["Nástroj pro testování výkonu?","JMeter / k6",["Selenium","Cypress","JUnit"],""],
+["Co je ELK stack?","Elasticsearch, Logstash, Kibana – centralizace logů",["Express, Lodash, Koa","Testovací framework","Šifrovací knihovna"],""],
+],
+tf:[
+["Skrytí tlačítka ve frontendu stačí jako ochrana přístupu.",false,"Ochrana musí být i na serveru."],
+["HTTP je bezestavový protokol.",true,""],
+["Do logů se smí zapisovat hesla pro debug.",false,""],
+["Ve Spring Security je CSRF ochrana pro formuláře zapnutá automaticky.",true,""],
+]},
+{id:"mvc",n:16,title:"Architektonické a návrhové vzory",icon:"⬡",
+t:[
+["SOA","Aplikace jako kolekce služeb, každá jedna byznys funkce s definovaným rozhraním"],
+["Model (MVC)","Byznys logika a data, nezávislý na UI"],
+["View (MVC)","Zobrazuje data z modelu"],
+["Controller","Zpracovává vstupy a aktualizuje model"],
+["Pasivní model","Jen Controller mění Model a instruuje View"],
+["Aktivní model","Model sám informuje View přes Observer"],
+["Observer","Objekt informuje registrované pozorovatele o změně stavu (update())"],
+["JSP Model 2","Centrální DispatcherServlet → Controller → Model → View (JSP)"],
+["MVP","View zcela pasivní, Presenter řídí veškerou interakci"],
+["MVT","Django: View plní roli Controlleru, Template = View"],
+["MVVM","View ↔ ViewModel přes data-binding (WPF, Angular)"],
+],
+q:[
+["Ve kterém vzoru je View zcela pasivní a nepřistupuje k Modelu?","MVP",["MVC","MVT","Observer"],""],
+["Který vzor nemá samostatný Controller – jeho roli plní View?","MVT",["MVVM","MVP","MVC"],""],
+["Čím komunikuje View s ViewModelem?","Data-bindingem",["Přes Controller","Přímým voláním DB","Přes Presenter"],""],
+["Jaký vzor umožňuje aktivní model v MVC?","Observer",["Singleton","Factory","Adapter"],""],
+["Nevýhoda MVP?","Přehlcení Presenteru u velkých aplikací",["View má příliš logiky","Nelze testovat","Chybí Model"],""],
+["Předchůdce JSP Model 2?","JSP Model 1 – skriptlety míchající logiku a prezentaci",["MVVM","SOA","MVT"],""],
+["Nevýhoda SOA?","Vysoká komplexita správy a orchestrace",["Nemožnost znovupoužití","Jedna technologie","Špatná škálovatelnost"],""],
+],
+tf:[
+["V MVC může View přistupovat k Modelu přímo.",true,""],
+["Model v MVC jsou jen ORM/datové třídy.",false,"I třídy, které s nimi manipulují (Creatory, Mappery)."],
+["MVC je základ, ostatní vzory jsou jeho variace.",true,""],
+]},
+{id:"sort",n:17,title:"Algoritmy řazení",icon:"⇅",
+t:[
+["Stabilita","Zachovává pořadí prvků se stejným klíčem"],
+["In-place","Nepotřebuje dodatečné pole"],
+["Přirozenost","Rychlejší na téměř seřazených datech"],
+["Bubble sort","Porovnává a prohazuje sousedy; O(n²), best O(n), stabilní"],
+["Insertion sort","Vkládá prvek na správné místo (jako karty); best O(n), stabilní"],
+["Selection sort","Hledá minimum a dává na konec seřazené části; vždy O(n²), nestabilní"],
+["Merge sort","Rozděl na poloviny, seřaď, slij; vždy O(n log n), stabilní, paměť O(n)"],
+["Quick sort","Pivot, rozdělení, rekurze; průměr O(n log n), worst O(n²), nestabilní"],
+],
+q:[
+["Který algoritmus má ve všech případech O(n log n)?","Merge sort",["Quick sort","Insertion sort","Bubble sort"],""],
+["Kdy má Quick sort O(n²)?","Při špatném výběru pivotu, např. seřazené pole",["Vždy","U náhodných dat","Nikdy"],""],
+["Který z nich NENÍ stabilní?","Selection sort",["Bubble sort","Insertion sort","Merge sort"],""],
+["Který NENÍ in-place?","Merge sort",["Quick sort","Bubble sort","Selection sort"],""],
+["Paměťová složitost Quick sortu?","O(log n)",["O(1)","O(n)","O(n²)"],"Zásobník rekurze."],
+["Vhodný pro externí řazení na disku?","Merge sort",["Selection sort","Bubble sort","Quick sort"],""],
+["Výhoda Selection sortu?","Malý počet výměn",["Stabilita","O(n log n)","Přirozenost"],""],
+["Best case Insertion sortu?","O(n)",["O(1)","O(n log n)","O(n²)"],""],
+],
+tf:[
+["Bubble sort je stabilní.",true,""],
+["Quick sort je nejčastěji používaný algoritmus v praxi pro data v paměti.",true,""],
+["Selection sort má best case O(n).",false,"Vždy O(n²)."],
+]},
+{id:"search",n:18,title:"Vyhledávání a prohledávání textu",icon:"🔎",
+t:[
+["Naivní vyhledávání","Porovná vzor na každé pozici; O(n·m)"],
+["Binární vyhledávání","Půlení intervalu v SEŘAZENÉM poli; O(log n)"],
+["KMP","Prefixová tabulka (failure function), bez návratu v textu; O(n+m)"],
+["Boyer-Moore","Porovnává zprava doleva; bad character + good suffix"],
+["Karp-Rabin","Rolling hash; při shodě hashe kontrola znak po znaku"],
+["Kolize hashů","Různé řetězce se stejným hashem"],
+],
+q:[
+["Podmínka binárního vyhledávání?","Data musí být seřazená",["Data musí být unikátní","Musí jít o text","Potřebuje hash"],""],
+["Který algoritmus porovnává vzor zprava doleva?","Boyer-Moore",["KMP","Karp-Rabin","Naivní"],""],
+["Složitost KMP?","O(n + m)",["O(n·m)","O(log n)","O(n²)"],""],
+["Co je rolling hash?","Efektivní přepočet hashe při posunu okna",["Hash celého textu","Šifrování","Prefixová tabulka"],""],
+["Proč Karp-Rabin kontroluje shodu znak po znaku?","Kvůli kolizím hashů",["Kvůli rychlosti","Protože nemá hash","Kvůli Unicode"],""],
+["Kde se používá Boyer-Moore?","Textové editory, grep",["Řazení","Komprese JPEG","Dijkstra"],""],
+["Karp-Rabin je vhodný zejména pro…","Hledání více vzorů, plagiátorství",["Řazení čísel","Hledání v seřazeném poli","Kostru grafu"],""],
+],
+tf:[
+["KMP se v textu nikdy nevrací zpět.",true,""],
+["Naivní algoritmus je nejrychlejší pro dlouhé texty.",false,""],
+["Boyer-Moore má heuristiku good suffix.",true,""],
+]},
+{id:"graph",n:19,title:"Typy grafů a reprezentace",icon:"⬢",
+t:[
+["Triviální graf","Jen jeden vrchol"],
+["Úplný graf","Každý vrchol spojen s každým"],
+["Diskrétní graf","Bez hran"],
+["Les","Graf bez kružnice"],
+["Strom","Souvislý graf bez kružnice"],
+["List","Vrchol stupně 1"],
+["BST","Vlevo menší, vpravo větší; průměrně O(log n)"],
+["Halda","Rodič ≤ potomci (min-heap) nebo ≥ (max-heap)"],
+["Kostra","Podgraf se všemi vrcholy bez cyklů"],
+["Cayleyho věta","Úplný graf Kₙ má n^(n−2) koster"],
+["Jarník-Prim","Greedy: přidá nejlevnější hranu mezi hotovou a nehotovou částí – husté grafy"],
+["Kruskal","Greedy: hrany podle váhy, pokud netvoří cyklus (union-find) – řídké grafy"],
+["Borůvka","1926 – každá komponenta vybere nejlevnější hranu ven, slučování"],
+],
+q:[
+["Kolik koster má úplný graf K₄?","16",["4","8","24"],"4^(4−2) = 16."],
+["Kolik koster má K₃?","3",["1","6","9"],"3^1 = 3."],
+["Který algoritmus MST je historicky nejstarší?","Borůvkův",["Kruskalův","Jarníkův","Dijkstrův"],""],
+["Jak Kruskal hlídá cykly?","Union-find (disjunktní množiny)",["Prioritní fronta","DFS","Z-buffer"],""],
+["Který MST algoritmus je vhodný pro husté grafy?","Jarník-Prim",["Kruskal","Borůvka","BFS"],""],
+["K čemu je halda?","Prioritní fronta, Heapsort, Dijkstra",["Hashování","Řazení textu","Komprese"],""],
+["Dvě reprezentace grafu?","Matice sousednosti a seznam sousedů",["Halda a zásobník","Strom a les","Pole a hash"],""],
+],
+tf:[
+["Strom je souvislý les.",true,""],
+["Kostra může obsahovat cyklus.",false,""],
+["Java TreeSet je založen na vyhledávacím stromu.",true,""],
+]},
+{id:"dist",n:20,title:"Vzdálenosti v grafu",icon:"⤳",
+t:[
+["Dijkstra","Nejkratší cesty z jednoho vrcholu, NEZÁPORNÉ hrany, prioritní fronta"],
+["Tremaux","Značkuje cesty: 1× při průchodu, 2× při návratu; nevstupuj do 2× značené"],
+["Edmonds-Johnson","Nejkratší cesty ve smíšených grafech"],
+["Eulerovský tah","Projde všechny HRANY právě jednou"],
+["Hamiltonovská kružnice","Projde všechny VRCHOLY právě jednou – NP-úplné"],
+["Hierholzer","Hledání Eulerovského tahu v O(E)"],
+["DFS","Do hloubky – zásobník/rekurze, detekce cyklů, topologické třídění"],
+["BFS","Do šířky – fronta, nejkratší cesta v neohodnoceném grafu"],
+],
+q:[
+["Kdy nelze použít Dijkstrův algoritmus?","Při záporných hranách",["V neorientovaném grafu","Při více než 100 vrcholech","Ve stromu"],""],
+["Kde se Dijkstra používá?","OSPF, GPS navigace",["Komprese obrazu","Řazení","Hashování"],""],
+["Podmínka Eulerovského grafu (neorientovaného)?","Všechny vrcholy mají sudý stupeň",["Všechny lichý","Je to strom","Je úplný"],""],
+["Složitost Hierholzerova algoritmu?","O(E)",["O(V²)","O(E log V)","NP-úplné"],""],
+["Který algoritmus najde nejkratší cestu v neohodnoceném grafu?","BFS",["DFS","Tremaux","Hierholzer"],""],
+["Edmonds-Johnson kombinuje techniky…","Dijkstry a Bellman-Forda",["Kruskala a Prima","BFS a DFS","KMP a Boyer-Moora"],""],
+],
+tf:[
+["Existuje jednoduchý obecný test Hamiltonovosti.",false,"Je to NP-úplné."],
+["DFS používá frontu.",false,"Zásobník; frontu BFS."],
+["Dijkstra používá prioritní frontu.",true,""],
+]},
+{id:"ai1",n:21,title:"Základní pojmy UI",icon:"🧠",
+t:[
+["Algoritmus","Přesný a konečný postup řešení problému"],
+["Heuristika","Chytrý odhad – rychlé, ne vždy optimální řešení"],
+["Turingův test","1950 – pozná tazatel přes text stroj od člověka?"],
+["Čínský pokoj","Searle 1980 – syntax ≠ sémantika, simulace ≠ porozumění"],
+["Sémantická síť","Uzly = pojmy, hrany = vztahy (je typem, má vlastnost)"],
+["Stavový prostor","Stavy + operátory; počáteční a cílový stav, cesta"],
+["BFS","Fronta FIFO, najde nejkratší cestu, paměťově náročné"],
+["DFS","Zásobník LIFO, úsporné, nemusí najít nejkratší, riziko zacyklení"],
+["Greedy Best-First","Volí stav nejblíž cíli podle heuristiky; ne optimální"],
+["A*","f(n) = g(n) + h(n); optimální s admisibilní heuristikou"],
+["Admisibilní heuristika","Nikdy nepřeceňuje skutečné náklady"],
+["Slabá AI","Úzká, jeden úkol – dnes existuje"],
+["Silná AI","Obecné myšlení jako člověk – zatím neexistuje"],
+["Expertní systém","Znalostní báze + inferenční stroj + uživatelské rozhraní"],
+["Dopředné řetězení","Od faktů k závěru (diagnostika)"],
+["Zpětné řetězení","Od cíle k faktům (ověřování hypotéz)"],
+],
+q:[
+["Co v A* znamená g(n)?","Skutečná cena cesty od startu do n",["Odhad do cíle","Celková cena","Hloubka uzlu"],""],
+["Kdy A* najde optimální řešení?","Když je heuristika admisibilní",["Vždy","Nikdy","Jen bez heuristiky"],""],
+["Kdo navrhl argument čínského pokoje?","John Searle",["Alan Turing","Marvin Minsky","John McCarthy"],""],
+["V jakém roce navrhl Turing svůj test?","1950",["1936","1980","1965"],""],
+["Úloha přelévání 5l a 3l nádob – počáteční stav?","(0, 0)",["(5, 3)","(4, 0)","(5, 0)"],""],
+["Který expertní systém diagnostikoval infekce?","MYCIN",["DENDRAL","CLIPS","ELIZA"],""],
+["DENDRAL sloužil k…","Analýze chemických sloučenin",["Diagnostice","Hraní šachu","Překladu"],""],
+["Který přístup je neinformovaný?","BFS",["A*","Greedy Best-First","Uspořádané prohledávání"],""],
+],
+tf:[
+["Turingův test zkoumá skutečné vědomí stroje.",false,"Jen schopnost napodobit chování."],
+["Siri a Google Translate jsou příklady slabé AI.",true,""],
+["Greedy Best-First vždy najde optimální řešení.",false,""],
+["WordNet je příklad sémantické sítě / znalostní báze.",true,""],
+]},
+{id:"ai2",n:22,title:"Vybraná témata UI",icon:"🧬",
+t:[
+["Umělý neuron","z = Σ wᵢxᵢ + b, y = activation(z)"],
+["Bias","Posun, pomáhá modelu přizpůsobit se datům"],
+["ReLU","max(0, z)"],
+["MLP","Vícevrstvý perceptron – strukturovaná data, klasifikace/regrese"],
+["CNN","Konvoluční síť – obraz, detekce hran a tvarů"],
+["RNN","Sekvenční data, paměť předchozích kroků; LSTM, GRU"],
+["GAN","Generátor vs. diskriminátor – deepfake"],
+["Transformer","Mechanismus pozornosti (attention), bez rekurence"],
+["SOM","Samoorganizující mapy – učení bez učitele, shlukování"],
+["Autoenkodér","Komprese a rekonstrukce dat, detekce anomálií"],
+["Backpropagation","Zpětné šíření chyby + gradientní sestup"],
+["Learning rate η","Rychlost učení – velikost kroku úpravy vah"],
+["Fitness funkce","Ohodnocuje kvalitu jedince"],
+["Ruletová selekce","Pravděpodobnost výběru úměrná fitness"],
+["Turnajová selekce","Z několika náhodných vybere nejlepšího"],
+["Elitismus","Nejlepší jedinci automaticky do další generace"],
+["Mutace","Náhodná změna – rozmanitost, únik z lokálního maxima"],
+["CRUM","Computational-Representational Understanding of Mind"],
+["Mentální reprezentace","CO mysl uchovává (obraz, pojem, pravidlo)"],
+["Mentální procedury","JAK mysl s reprezentacemi pracuje"],
+],
+q:[
+["x1=0.5, x2=0.8, w1=0.4, w2=0.9, b=−0.1, ReLU. Výstup?","0.82",["0.92","1.02","0"],"0.2 + 0.72 − 0.1 = 0.82."],
+["Která síť je určena pro obrazová data?","CNN",["RNN","SOM","GAN"],""],
+["Na čem je postaven transformer?","Attention (mechanismus pozornosti)",["Konvoluce","Rekurence","Genetické algoritmy"],""],
+["Jednobodové křížení: R1 110|1010, R2 001|0111. Potomek?","1100111",["0011010","1101010","0010111"],""],
+["Fitness pro TSP?","1 / délka trasy",["délka trasy","délka²","1 − délka"],""],
+["Typická pravděpodobnost mutace?","1–5 %",["50 %","70–90 %","100 %"],"70–90 % je křížení."],
+["Křížení pro permutace (TSP)?","OX, PMX, CX",["Jednobodové","Aritmetické","Uniformní binární"],""],
+["Co NENÍ disciplína kognitivních věd?","Účetnictví",["Lingvistika","Neurovědy","Filosofie mysli"],""],
+["Typ mentální reprezentace „schéma návštěvy restaurace“?","Schéma",["Propoziční","Motorická","Obrazová"],""],
+["Čím se počítá chyba sítě?","Ztrátová funkce (MSE, cross-entropy)",["ReLU","Bias","Attention"],""],
+],
+tf:[
+["Feedforward síť má zpětné smyčky.",false,"Data tečou jedním směrem."],
+["GRU je zjednodušená verze LSTM.",true,""],
+["Genetické algoritmy vždy najdou globální optimum.",false,""],
+["SOM se učí bez učitele.",true,""],
+["CRUM tvrdí, že mentální procedury jsou jako algoritmy.",true,""],
+]},
+];
+const ORDERS = [
+["Fáze vodopádu","agile",["Analýza požadavků","Návrh systému","Implementace","Testování","Nasazení","Údržba"]],
+["Fáze RUP","agile",["Inception","Elaboration","Construction","Transition"]],
+["Cyklus TDD","agile",["Red – test selže","Green – minimální implementace","Refactor"]],
+["Události Scrumu","agile",["Sprint Planning","Daily Scrum","Sprint Review","Sprint Retrospective"]],
+["Zobrazovací řetězec","cg",["Modelová transformace","Pohledová transformace","Projekční transformace","Perspektivní dělení","Viewport transformace"]],
+["Normalizace","er",["1NF – atomické hodnoty","2NF – bez částečných závislostí","3NF – bez tranzitivních závislostí"]],
+["Umělý neuron","ai2",["Příjem vstupů a vah","Vážený součet + bias","Aktivační funkce","Výstup"]],
+["Backpropagation","ai2",["Forward pass","Výpočet chyby (loss)","Backward pass – gradienty","Update vah gradientním sestupem"]],
+["Genetický algoritmus","ai2",["Inicializace populace","Ohodnocení fitness","Selekce","Křížení","Mutace","Nová generace"]],
+["Binární vyhledávání","search",["Najdi střed","Porovnej s hledanou hodnotou","Pokračuj v levé/pravé polovině","Opakuj do nalezení nebo prázdného intervalu"]],
+["Karp-Rabin","search",["Spočítej hash vzoru","Spočítej hash okna textu","Při shodě porovnej znak po znaku","Posuň okno a přepočítej rolling hash"]],
+["Životní cyklus servletu","web",["init()","service()","destroy()"]],
+["Transakce","db",["Začátek transakce","DML příkazy","SAVEPOINT (volitelně)","COMMIT nebo ROLLBACK"]],
+["Agentická smyčka ReAct","agent",["Myšlenka (Reason)","Akce (Act)","Pozorování","Další myšlenka…"]],
+["Složitost od nejpomalejší","sort",["O(n²) – Bubble sort","O(n log n) – Merge sort","O(n) – lineární průchod","O(log n) – binární vyhledávání","O(1) – přístup do pole"]],
+];
+
+</script>
+<script>
+const CH = [...DATA1, ...DATA2, ...DATA3];
+const CHMAP = Object.fromEntries(CH.map(c => [c.id, c]));
+const $ = (s, el = document) => el.querySelector(s);
+const app = $("#app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const shuffle = a => { a = [...a]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pick = (a, n) => shuffle(a).slice(0, n);
+const today = () => new Date().toISOString().slice(0, 10);
+
+/* ---------- STATE ---------- */
+const KEY = "statnice-se-v1";
+const DEF = { xp: 0, done: {}, box: {}, ach: {}, stats: { quizzes: 0, bestSpeed: 0, bosses: 0, cards: 0, bestCombo: 0, perfect: 0, matches: 0, orders: 0 }, streak: 0, lastDay: "", dayXP: 0, dayDate: "", nick: "", sel: [] };
+let S = structuredClone(DEF);
+try { const r = localStorage.getItem(KEY); if (r) S = Object.assign(structuredClone(DEF), JSON.parse(r)); S.stats = Object.assign(structuredClone(DEF.stats), S.stats); } catch (e) {}
+let DB = null, UID = null, saveTimer = null;
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(syncRemote, 1500);
+}
+async function syncRemote() {
+  if (!DB || !UID) return;
+  try { await DB.doc("data/users/" + UID + "/progress").set({ s: JSON.stringify(S), xp: S.xp }); } catch (e) { if (e && e.code === "invalid_argument") DB = null; }
+}
+
+/* ---------- LEVELS ---------- */
+const TITLES = ["Nováček", "Prvák", "Ranní ptáče", "Pilný student", "Knihomol", "Zkouškový bojovník", "Bakalant", "Mistr poznámek", "Státnicový Padawan", "Algoritmický rytíř", "Grafový guru", "Neuronová legenda", "Státnicový Jedi", "Bc. in spe", "Profesor tajně"];
+function lvl(xp) { let n = 1, need = 100, acc = 0; while (xp >= acc + need) { acc += need; n++; need = 100 + (n - 1) * 50; } return { n, cur: xp - acc, need, title: TITLES[Math.min(n - 1, TITLES.length - 1)] }; }
+
+/* ---------- ITEMS ---------- */
+function items(ch) {
+  const out = [];
+  const ex = (k, v) => v || EXPL[ch.id + "|" + k] || "";
+  ch.q.forEach((q, i) => out.push({ id: ch.id + ":q" + i, ch: ch.id, kind: "mc", prompt: q[0], correct: q[1], wrong: q[2], expl: ex("q|" + i, q[3]) }));
+  ch.tf.forEach((t, i) => out.push({ id: ch.id + ":tf" + i, ch: ch.id, kind: "tf", prompt: t[0], correct: t[1] ? "Pravda" : "Nepravda", wrong: [t[1] ? "Nepravda" : "Pravda"], expl: ex("tf|" + i, t[2]) }));
+  ch.t.forEach((t, i) => {
+    const others = pick(ch.t.filter((_, j) => j !== i), 3);
+    if (i % 2 === 0) out.push({ id: ch.id + ":t" + i, ch: ch.id, kind: "mc", prompt: "Který pojem odpovídá popisu: „" + t[1] + "“?", correct: t[0], wrong: others.map(o => o[0]), expl: t[0] + ": " + t[1] + ".", meaning: Object.fromEntries(others.map(o => [o[0], o[0] + " znamená: " + o[1] + "."])) });
+    else out.push({ id: ch.id + ":t" + i, ch: ch.id, kind: "mc", prompt: "Co znamená pojem „" + t[0] + "“?", correct: t[1], wrong: others.map(o => o[1]), expl: t[0] + ": " + t[1] + ".", meaning: Object.fromEntries(others.map(o => [o[1], "Zvolená definice patří k pojmu „" + o[0] + "“."])) });
+  });
+  return out;
+}
+const ALLITEMS = Object.fromEntries(CH.map(c => [c.id, items(c)]));
+function mastery(id) { const it = ALLITEMS[id]; return it.filter(x => S.done[x.id]).length / it.length; }
+function totalMastery() { let a = 0, b = 0; CH.forEach(c => { a += ALLITEMS[c.id].filter(x => S.done[x.id]).length; b += ALLITEMS[c.id].length; }); return Math.round(a / b * 100); }
+function poolFor(ids) { return ids.flatMap(id => ALLITEMS[id]); }
+function weighted(pool, n) { const nd = shuffle(pool.filter(x => !S.done[x.id])), d = shuffle(pool.filter(x => S.done[x.id])); return shuffle([...nd.slice(0, Math.ceil(n * 0.7)), ...d, ...nd.slice(Math.ceil(n * 0.7))].slice(0, n)); }
+function selIds() { return S.sel.length ? S.sel : CH.map(c => c.id); }
+
+/* ---------- XP / ACHIEVEMENTS ---------- */
+const ACH = [
+  ["first", "1.", "První krok", "Dokonči první kvíz"],
+  ["combo5", "×5", "Na vlně", "Pět správně za sebou"],
+  ["combo15", "×15", "Nezastavitelná", "Patnáct správně za sebou"],
+  ["perfect", "10/10", "Bez chyby", "Kvíz na 100 %"],
+  ["cards50", "50", "Kartotéka", "Projdi 50 kartiček"],
+  ["match", "A=B", "Párovačka", "Přiřazovačka bez chyby"],
+  ["order", "1-2-3", "Pořádkumilovná", "Seřaď postup napoprvé"],
+  ["speed15", "15", "Blesk", "Bleskovka 15+ bodů"],
+  ["speed25", "25", "Turbo mozek", "Bleskovka 25+ bodů"],
+  ["boss", "Bc.", "Před komisí", "Přesvědč komisi"],
+  ["boss3", "3×", "Komise se bojí", "Přesvědč komisi třikrát"],
+  ["allch", "22", "Průzkumnice", "Odpověz v každém okruhu"],
+  ["master1", "100", "Expertka", "Jeden okruh na 100 %"],
+  ["master50", "50 %", "Půlka hotová", "Celkem zvládnuto 50 %"],
+  ["master100", "100 %", "Připravená", "Celkem zvládnuto 100 %"],
+  ["lvl5", "L5", "Level 5", "Dosáhni levelu 5"],
+  ["lvl10", "L10", "Level 10", "Dosáhni levelu 10"],
+  ["streak3", "3 d", "Tři dny v kuse", "Uč se 3 dny po sobě"],
+  ["streak7", "7 d", "Týden disciplíny", "Uč se 7 dní po sobě"],
+];
+function unlock(id) { if (S.ach[id]) return; S.ach[id] = Date.now(); const a = ACH.find(x => x[0] === id); slam(stampSVG(a, true), "Nové razítko: " + a[2]); save(); }
+function checkAch() {
+  if (S.stats.cards >= 50) unlock("cards50");
+  if (CH.every(c => ALLITEMS[c.id].some(x => S.done[x.id]))) unlock("allch");
+  if (CH.some(c => mastery(c.id) === 1)) unlock("master1");
+  const tm = totalMastery(); if (tm >= 50) unlock("master50"); if (tm >= 100) unlock("master100");
+  const L = lvl(S.xp).n; if (L >= 5) unlock("lvl5"); if (L >= 10) unlock("lvl10");
+  if (S.streak >= 3) unlock("streak3"); if (S.streak >= 7) unlock("streak7");
+}
+function addXP(n) {
+  const before = lvl(S.xp).n;
+  S.xp += n;
+  const d = today();
+  if (S.dayDate !== d) { S.dayDate = d; S.dayXP = 0; }
+  S.dayXP += n;
+  if (S.lastDay !== d) { const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10); S.streak = S.lastDay === y ? S.streak + 1 : 1; S.lastDay = d; }
+  const after = lvl(S.xp);
+  if (after.n > before) { slam(stampSVG(["lv", "L" + after.n, after.title, ""], true), "Level " + after.n + ": " + after.title); }
+  checkAch(); save(); renderHUD();
+}
+
+/* ---------- UI HELPERS ---------- */
+const ICON = {
+  quiz: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8.5l1.5 1.5L12 7.5M8 15h8M14 9h2"/>',
+  cards: '<rect x="3.5" y="7" width="13" height="13" rx="2"/><path d="M7.5 4h10a3 3 0 0 1 3 3v10"/>',
+  match: '<circle cx="5.5" cy="6" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="18.5" cy="6" r="2.2"/><path d="M7.7 6.4c5 1 3.6 10.2 8.6 11.2M7.7 17.6l8.6-11.2" stroke-dasharray="0"/>',
+  speed: '<circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5M10 2.5h4M18.5 6.5l1.5-1.5"/>',
+  order: '<path d="M10 6h10M10 12h10M10 18h10M4 5l1.5-1v4M3.8 11.2a1.4 1.4 0 0 1 2.6.8L4 14.5h2.6M4 17h2.2l-1.2 1.6a1.2 1.2 0 1 1-1.1 1.6"/>',
+  boss: '<circle cx="5.5" cy="9" r="2.3"/><circle cx="12" cy="6.8" r="2.6"/><circle cx="18.5" cy="9" r="2.3"/><path d="M1.8 19c.3-3.2 1.8-5 3.7-5s3.2 1.4 3.6 3.6M8.3 19.5c.4-4 1.8-6.2 3.7-6.2s3.3 2.2 3.7 6.2M14.9 17.6c.4-2.2 1.7-3.6 3.6-3.6s3.4 1.8 3.7 5"/>',
+};
+const icon = k => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
+function hash(s) { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); }
+function stampSVG(a, got) {
+  const id = "sp" + hash(a[0] + a[2]) + (got ? "g" : "");
+  const rot = got ? (hash(a[0]) % 25) - 12 : 0;
+  const ring = (a[2] + " • ").repeat(a[2].length < 12 ? 3 : 2).toUpperCase();
+  const fs = a[1].length > 4 ? 15 : a[1].length > 2 ? 19 : 24;
+  return `<svg viewBox="0 0 100 100" style="transform:rotate(${rot}deg)" aria-hidden="true"><g ${got ? 'filter="url(#ink)"' : ""} fill="none" stroke="currentColor" ${got ? "" : 'stroke-dasharray="3 3"'}>
+  <circle cx="50" cy="50" r="46" stroke-width="3.6"/><circle cx="50" cy="50" r="33" stroke-width="2"/></g>
+  <defs><path id="${id}" d="M50 50 m-39.5 0 a39.5 39.5 0 1 1 79 0 a39.5 39.5 0 1 1 -79 0"/></defs>
+  <g ${got ? 'filter="url(#ink)"' : ""} fill="currentColor"><text font-family="Archivo,sans-serif" font-size="8.6" font-weight="900" letter-spacing="1.3"><textPath href="#${id}" textLength="244">${esc(ring)}</textPath></text>
+  <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="Archivo,sans-serif" font-weight="900" font-size="${fs}" style="font-stretch:70%">${esc(a[1])}</text></g></svg>`;
+}
+let slamQ = [], slamBusy = false;
+function slam(svg, label) {
+  slamQ.push([svg, label]); if (slamBusy) return;
+  const next = () => {
+    const it = slamQ.shift(); if (!it) { slamBusy = false; return; }
+    slamBusy = true; const el = $("#slam");
+    el.innerHTML = `<div class="big">${it[0]}</div>`; toast(esc(it[1]));
+    setTimeout(() => { el.innerHTML = ""; next(); }, 1900);
+  };
+  next();
+}
+function toast(html) { const t = document.createElement("div"); t.className = "toast"; t.innerHTML = html; $("#toasts").appendChild(t); setTimeout(() => t.classList.add("out"), 2600); setTimeout(() => t.remove(), 3100); }
+function floatXP(n, el) { if (!el) return; const r = el.getBoundingClientRect(); const f = document.createElement("div"); f.className = "fxp"; f.textContent = "+" + n; f.style.left = r.right - 60 + "px"; f.style.top = r.top - 6 + "px"; document.body.appendChild(f); setTimeout(() => f.remove(), 950); }
+let timers = [];
+function clearTimers() { timers.forEach(t => clearInterval(t)); timers = []; document.onkeydown = null; }
+function go(fn) { clearTimers(); window.scrollTo(0, 0); fn(); }
+function renderHUD() {
+  const L = lvl(S.xp);
+  $("#hud").innerHTML = `<button class="mark" id="homebtn">Státnice SWI</button>
+  <div class="lvl"><b class="num">Lv ${L.n}</b><span class="stat hide-s">${esc(L.title)}</span><div class="xpbar" title="${L.cur} z ${L.need} XP do dalšího levelu"><i style="width:${L.cur / L.need * 100}%"></i></div></div>
+  <span class="stat num"><b>${S.streak}</b> ${S.streak === 1 ? "den" : S.streak >= 2 && S.streak <= 4 ? "dny" : "dní"} v řadě</span>
+  <span class="stat num hide-s"><b>${totalMastery()} %</b> zvládnuto</span>`;
+  $("#homebtn").onclick = () => go(home);
+}
+const ticket = (c, extra = "") => { const m = Math.round(mastery(c.id) * 100); return `<div class="stub">${c.n}<small>okruh</small></div><div class="body"><div class="t">${esc(c.title)}</div><div class="m"><div class="bar"><i style="width:${m}%"></i></div><span class="num">${m} %</span></div></div>${extra}`; };
+const plural = (n, a, b, c) => n === 1 ? a : n >= 2 && n <= 4 ? b : c;
+
+/* ---------- HOME ---------- */
+function home() {
+  const d = today(); const dayXP = S.dayDate === d ? S.dayXP : 0; const goal = 100;
+  const weak = CH.slice().sort((a, b) => mastery(a.id) - mastery(b.id) || a.n - b.n).slice(0, 5);
+  const fanPos = [[-13, 26, -150], [-6.5, 8, -75], [0, 0, 0], [6.5, 8, 75], [13, 26, 150]];
+  const ids = selIds();
+  const total = CH.reduce((a, c) => a + ALLITEMS[c.id].length, 0);
+  const rec = { quiz: S.stats.quizzes + "× odehráno", cards: S.stats.cards + " kartiček", match: S.stats.matches + "× spojeno", speed: "rekord " + S.stats.bestSpeed, order: S.stats.orders + "× seřazeno", boss: S.stats.bosses + "× přesvědčena" };
+  const M = [["boss", "Státnice nanečisto", "Vylosuj dva okruhy a přesvědč komisi"], ["quiz", "Kvíz", "Deset otázek, série zvyšuje body"], ["cards", "Kartičky", "Co neumíš, uvidíš příště dřív"], ["match", "Přiřazovačka", "Spoj šest pojmů s definicemi"], ["speed", "Bleskovka", "60 sekund, chyba stojí 3 sekundy"], ["order", "Seřaď postup", "Fáze, cykly a kroky algoritmů"]];
+  app.innerHTML = `
+  <section class="hero">
+    <div>
+      <h1>Státnice ze Softwarového inženýrství</h1>
+      <p class="lead">22 okruhů a ${total} otázek z tvých poznámek. Vylosuj si okruhy, odpovídej komisi a sbírej razítka do indexu.</p>
+      <div class="acts"><button class="btn-main" data-mode="boss">Vylosovat okruhy</button><button class="btn-ghost" data-mode="quiz">Rychlý kvíz</button></div>
+      <div class="today"><div class="small"><b class="num">${Math.min(dayXP, goal)} / ${goal} XP</b> <span class="mute">dnešní cíl${dayXP >= goal ? " splněn" : ""}</span></div><div class="line"><i style="width:${Math.min(dayXP / goal, 1) * 100}%"></i></div></div>
+    </div>
+    <div>
+      <div class="fan">${weak.map((c, i) => `<button class="tk" style="--i:${i};--r:${fanPos[i][0]}deg;--y:${fanPos[i][1]}px;--x:${fanPos[i][2]}px" data-ch="${c.id}" aria-label="Otevřít okruh ${c.n}: ${esc(c.title)}">${ticket(c)}</button>`).join("")}</div>
+      <p class="small mute" style="text-align:center">Okruhy, které máš zatím nejméně zvládnuté</p>
+    </div>
+  </section>
+  <section>
+    <div class="sec-head"><h2>Herní režimy</h2><span class="small mute">${S.sel.length ? `Hraješ z ${S.sel.length} ${plural(S.sel.length, "vybraného okruhu", "vybraných okruhů", "vybraných okruhů")}. <button class="back" id="clr" style="color:var(--stamp)">Zrušit výběr</button>` : "Hraješ ze všech okruhů"}</span></div>
+    <div class="modes">${M.map(m => `<button class="mode" data-mode="${m[0]}">${icon(m[0])}<span><b>${m[1]}</b><span class="d">${m[2]}</span></span><span class="rec num">${rec[m[0]]}</span></button>`).join("")}</div>
+  </section>
+  <section>
+    <div class="sec-head"><h2>Okruhy</h2><span class="small mute">Číslem okruh vybereš do her, názvem otevřeš tahák.</span></div>
+    <div class="grid-tk">${CH.map(c => `<div class="tk ${S.sel.includes(c.id) ? "on" : ""}">${ticket(c, mastery(c.id) === 1 ? '<span class="done-stamp">ZVLÁDNUTO</span>' : "").replace('<div class="stub">', `<button class="stub" data-sel="${c.id}" aria-pressed="${S.sel.includes(c.id)}" aria-label="Vybrat okruh ${c.n} do her">`).replace('okruh</small></div>', 'okruh</small></button>').replace('<div class="body">', `<div class="body" data-ch="${c.id}" role="button" tabindex="0">`)}</div>`).join("")}</div>
+  </section>
+  <section class="twocol">
+    <div><div class="sec-head"><h2>Index</h2><span class="small mute num">${Object.keys(S.ach).length} z ${ACH.length} razítek</span></div>
+      <div class="stamps">${ACH.map(a => `<div class="st ${S.ach[a[0]] ? "got" : ""}">${stampSVG(a, !!S.ach[a[0]])}<span class="nm">${esc(a[2])}</span><span class="hint">${esc(a[3])}</span></div>`).join("")}</div></div>
+    <div><div class="sec-head"><h2>Vyzvi kamarády</h2></div><div id="lb" class="share"></div></div>
+  </section>`;
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => go(MODES[b.dataset.mode].bind(null, ids)));
+  app.querySelectorAll("[data-ch]").forEach(el => { el.onclick = () => go(() => chapter(el.dataset.ch)); el.onkeydown = e => { if (e.key === "Enter") el.click(); }; });
+  app.querySelectorAll("[data-sel]").forEach(b => b.onclick = () => { const id = b.dataset.sel; S.sel = S.sel.includes(id) ? S.sel.filter(x => x !== id) : [...S.sel, id]; save(); const y = scrollY; home(); scrollTo(0, y); });
+  const clr = $("#clr"); if (clr) clr.onclick = () => { S.sel = []; save(); const y = scrollY; home(); scrollTo(0, y); };
+  renderLB();
+}
+
+function chapter(id) {
+  const c = CHMAP[id]; const m = Math.round(mastery(id) * 100);
+  const M = [["quiz", "Kvíz", "Deset otázek z okruhu"], ["cards", "Kartičky", c.t.length + " pojmů"], ["match", "Přiřazovačka", "Pojmy a definice"], ["speed", "Bleskovka", "60 sekund jen z okruhu"]];
+  app.innerHTML = `<button class="back">← Přehled</button>
+  <div class="chead"><div class="n">${c.n}</div><div><h1 style="font-size:clamp(32px,5vw,54px)">${esc(c.title)}</h1><p class="mute num" style="margin-top:8px">${m} % zvládnuto z ${ALLITEMS[id].length} otázek a pojmů</p></div></div>
+  <div class="modes compact">${M.map(x => `<button class="mode" data-mode="${x[0]}">${icon(x[0])}<span><b>${x[1]}</b><span class="d">${x[2]}</span></span><span></span></button>`).join("")}</div>
+  <section><div class="sec-head"><h2>Tahák pojmů</h2></div><dl class="cheat">${c.t.map(t => `<dt>${esc(t[0])}</dt><dd>${esc(t[1])}</dd>`).join("")}</dl></section>`;
+  $(".back").onclick = () => go(home);
+  app.querySelectorAll("[data-mode]").forEach(b => b.onclick = () => go(MODES[b.dataset.mode].bind(null, [id], () => chapter(id))));
+}
+
+/* ---------- shared question renderer ---------- */
+function qHTML(q, opts) {
+  const c = CHMAP[q.ch];
+  return `<div class="from">Okruh ${c.n}: ${esc(c.title)}</div><h3>${esc(q.prompt)}</h3>
+  <ul class="opts ${q.kind === "tf" ? "tf" : ""}">${opts.map((o, k) => `<li><button class="opt" data-v="${esc(o)}"><span class="k">${k + 1}</span><span><span class="tx">${esc(o)}</span></span></button></li>`).join("")}</ul><div id="fb"></div>`;
+}
+function mark(btns, chosen, q) {
+  const right = chosen.dataset.v === q.correct;
+  btns.forEach(x => { x.setAttribute("aria-disabled", "true"); if (x.dataset.v === q.correct) { x.classList.add("good"); x.insertAdjacentHTML("beforeend", '<span class="note">správně</span>'); } });
+  if (!right) { chosen.classList.add("bad"); chosen.insertAdjacentHTML("beforeend", '<span class="note">ne</span>'); }
+  return right;
+}
+function fbHTML(q, chosen, right, okWord, btn) {
+  const why = q.expl || "";
+  const mine = !right && q.meaning && q.meaning[chosen.dataset.v] ? `<span class="mine">${esc(q.meaning[chosen.dataset.v])}</span>` : "";
+  const head = right ? okWord : "Správně je: " + q.correct + (q.kind === "tf" ? "." : "");
+  return `<div class="fb ${right ? "is-ok" : "is-no"}"><div class="why"><b>${esc(head)}</b>${why ? `<span>${esc(why)}</span>` : ""}${mine}</div>${btn}</div>`;
+}
+const stepsHTML = (n, res, cur) => `<div class="steps">${Array.from({ length: n }, (_, k) => `<i class="${res[k] === true ? "ok" : res[k] === false ? "no" : k === cur ? "cur" : ""}"></i>`).join("")}</div>`;
+const optsFor = q => q.kind === "tf" ? ["Pravda", "Nepravda"] : shuffle([q.correct, ...q.wrong.slice(0, 3)]);
+
+/* ---------- QUIZ ---------- */
+function quiz(ids, back = home) {
+  const qs = weighted(poolFor(ids), 10); let i = 0, ok = 0, combo = 0, gained = 0; const res = [];
+  function show() {
+    if (i >= qs.length) return end();
+    const q = qs[i];
+    app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="combo" id="cb">${combo >= 2 ? "série " + combo : ""}</span><span class="small mute num">${i + 1} / ${qs.length}</span></div>
+    ${stepsHTML(qs.length, res, i)}<div class="sheet">${qHTML(q, optsFor(q))}</div></div>`;
+    $(".back").onclick = () => go(back);
+    const btns = [...app.querySelectorAll(".opt")]; let answered = false;
+    const next = () => { i++; show(); };
+    const answer = b => {
+      if (answered) return; answered = true;
+      const right = mark(btns, b, q); res[i] = right;
+      if (right) { ok++; combo++; S.done[q.id] = 1; const x = 10 + Math.min(combo - 1, 5) * 2; gained += x; addXP(x); floatXP(x, b); S.stats.bestCombo = Math.max(S.stats.bestCombo, combo); if (combo >= 5) unlock("combo5"); if (combo >= 15) unlock("combo15"); if (combo >= 2) { const cb = $("#cb"); cb.textContent = "série " + combo; cb.classList.remove("pop"); void cb.offsetWidth; cb.classList.add("pop"); } }
+      else { combo = 0; $("#cb").textContent = ""; delete S.done[q.id]; save(); }
+      app.querySelectorAll(".steps i")[i].className = right ? "ok" : "no";
+      $("#fb").innerHTML = fbHTML(q, b, right, "Správně.", `<button class="btn-main" id="nx">${i + 1 < qs.length ? "Další otázka" : "Zobrazit výsledek"}<kbd>Enter</kbd></button>`);
+      $("#nx").onclick = next; $("#nx").focus({ preventScroll: true });
+    };
+    btns.forEach(b => b.onclick = () => answer(b));
+    document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= btns.length) answer(btns[n - 1]); };
+  }
+  function end() {
+    document.onkeydown = null; S.stats.quizzes++; unlock("first");
+    const pct = Math.round(ok / qs.length * 100); let bonus = 0;
+    if (pct === 100) { bonus = 30; S.stats.perfect++; unlock("perfect"); }
+    if (bonus) addXP(bonus); else save();
+    result(`${ok}/${qs.length}`, pct >= 80 ? "Tohle by komise vzala." : pct >= 50 ? "Solidní základ, ještě kousek." : "Projdi si tahák a zkus to znovu.", `Získáno ${gained + bonus} XP${bonus ? ", z toho 30 za kvíz bez chyby" : ""}.`, () => quiz(ids, back), back);
+  }
+  show();
+}
+function result(big, h, p, again, back) {
+  app.innerHTML = `<div class="result"><div class="score num" style="${big.length > 6 ? 'font-size:clamp(52px,10vw,96px)' : ''}">${esc(big)}</div><h2>${esc(h)}</h2><p class="mute" style="margin-top:8px">${p}</p><div class="acts"><button class="btn-main" id="ag">Hrát znovu</button><button class="btn-ghost" id="bk">Zpět</button></div></div>`;
+  $("#ag").onclick = () => go(again); $("#bk").onclick = () => go(back); $("#ag").focus({ preventScroll: true });
+}
+
+/* ---------- FLASHCARDS ---------- */
+function cards(ids, back = home) {
+  const all = ids.flatMap(id => CHMAP[id].t.map((t, i) => ({ id: id + ":c" + i, ch: id, f: t[0], b: t[1] })));
+  const deck = shuffle(all).sort((a, b) => (S.box[a.id] || 0) - (S.box[b.id] || 0)).slice(0, 20); let i = 0, known = 0;
+  function show() {
+    if (i >= deck.length) { save(); return result(`${known}/${deck.length}`, "Kartičky prošlé.", "Pojmy, které ještě neumíš, ti příště ukážu dřív.", () => cards(ids, back), back); }
+    const c = deck[i]; const box = S.box[c.id] || 0; const ch = CHMAP[c.ch];
+    app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="boxes" title="Jak dobře pojem umíš (0–5)">${Array.from({ length: 5 }, (_, k) => `<i class="${k < box ? "f" : ""}"></i>`).join("")}</span><span class="small mute num">${i + 1} / ${deck.length}</span></div>
+    <div class="flip" id="fl" role="button" tabindex="0" aria-label="Otočit kartičku"><div class="inner"><div class="face"><div class="from">Okruh ${ch.n}: ${esc(ch.title)}</div><h2>${esc(c.f)}</h2><div class="tap">Klepni nebo stiskni mezerník</div></div><div class="face back">${esc(c.b)}</div></div></div>
+    <div class="rate" id="rate" hidden><button class="btn-ghost" id="no">Ještě neumím<kbd>1</kbd></button><button class="btn-main" id="yes">Umím<kbd>2</kbd></button></div></div>`;
+    $(".back").onclick = () => go(back);
+    const fl = $("#fl"); const flip = () => { fl.classList.toggle("on"); $("#rate").hidden = false; };
+    fl.onclick = flip; fl.focus({ preventScroll: true });
+    const rate = y => { S.stats.cards++; if (y) { known++; S.box[c.id] = Math.min(box + 1, 5); addXP(3); } else { S.box[c.id] = 0; save(); } i++; show(); };
+    $("#no").onclick = () => rate(false); $("#yes").onclick = () => rate(true);
+    document.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flip(); } if (!$("#rate").hidden) { if (e.key === "1") rate(false); if (e.key === "2") rate(true); } };
+  }
+  show();
+}
+
+/* ---------- MATCH ---------- */
+function match(ids, back = home) {
+  const all = ids.flatMap(id => CHMAP[id].t.map(t => ({ ch: id, t: t[0], d: t[1] })));
+  const set = pick(all, 6); const L = shuffle(set), R = shuffle(set);
+  let selL = null, selR = null, done = 0, miss = 0; const t0 = Date.now();
+  app.innerHTML = `<div class="play" style="max-width:960px"><div class="ptop"><button class="back">← Ukončit</button><span class="small mute num" id="ms">Chyby: 0</span><span class="small mute num" id="tm">0 s</span></div>
+  <h2 style="margin-bottom:16px">Spoj pojem s definicí</h2>
+  <div class="match"><div class="col">${L.map(x => `<button class="mt" data-k="${set.indexOf(x)}" data-s="L">${esc(x.t)}</button>`).join("")}</div><div class="col">${R.map(x => `<button class="mt def" data-k="${set.indexOf(x)}" data-s="R">${esc(x.d)}</button>`).join("")}</div></div></div>`;
+  $(".back").onclick = () => go(back);
+  timers.push(setInterval(() => { const e = $("#tm"); if (e) e.textContent = Math.round((Date.now() - t0) / 1000) + " s"; }, 500));
+  app.querySelectorAll(".mt").forEach(b => b.onclick = () => {
+    if (b.classList.contains("paired")) return;
+    if (b.dataset.s === "L") { selL && selL.classList.remove("sel"); selL = b; } else { selR && selR.classList.remove("sel"); selR = b; }
+    b.classList.add("sel");
+    if (selL && selR) {
+      const a = selL, c = selR; selL = selR = null;
+      if (a.dataset.k === c.dataset.k) { a.className = c.className = a.className.replace("sel", "") + " paired"; c.className = "mt def paired"; done++; addXP(5); floatXP(5, c); setTimeout(() => { a.classList.add("gone"); c.classList.add("gone"); }, 380); if (done === set.length) fin(); }
+      else { miss++; $("#ms").textContent = "Chyby: " + miss; a.classList.add("shake"); c.classList.add("shake"); setTimeout(() => { a.classList.remove("sel", "shake"); c.classList.remove("sel", "shake"); }, 420); }
+    }
+  });
+  function fin() {
+    clearTimers(); const s = Math.round((Date.now() - t0) / 1000); S.stats.matches++;
+    let bonus = miss === 0 ? 20 : 0; if (s < 40) bonus += 10; if (miss === 0) unlock("match"); if (bonus) addXP(bonus); else save();
+    setTimeout(() => result(`${s} s`, miss ? `Hotovo s ${miss} ${plural(miss, "chybou", "chybami", "chybami")}.` : "Všechno napoprvé.", bonus ? `Bonus ${bonus} XP${s < 40 ? " včetně 10 za rychlost pod 40 s" : ""}.` : "Pod 40 sekund a bez chyby dostaneš bonus.", () => match(ids, back), back), 600);
+  }
+}
+
+/* ---------- SPEED ---------- */
+function speed(ids, back = home) {
+  const pool = shuffle(poolFor(ids)); let k = 0, score = 0, left = 60, wrong = 0;
+  app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="small mute">Chyba stojí 3 sekundy</span></div>
+  <div class="clock" id="clk"><span class="sec num" id="tl">60</span><div class="track"><i id="tb"></i></div><span class="pts num" id="sc">0</span></div><div class="sheet" id="sq"></div></div>`;
+  $(".back").onclick = () => go(back);
+  function q() {
+    if (k >= pool.length) k = 0; const it = pool[k++];
+    $("#sq").innerHTML = qHTML(it, optsFor(it));
+    const bs = [...app.querySelectorAll("#sq .opt")];
+    const ans = b => { const sq = $("#sq"); sq.classList.remove("flash-ok", "flash-no"); void sq.offsetWidth; if (b.dataset.v === it.correct) { score++; S.done[it.id] = 1; sq.classList.add("flash-ok"); } else { wrong++; left = Math.max(0, left - 3); sq.classList.add("flash-no"); } $("#sc").textContent = score; q(); };
+    bs.forEach(b => b.onclick = () => ans(b));
+    document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= bs.length) ans(bs[n - 1]); };
+  }
+  q();
+  timers.push(setInterval(() => {
+    left -= .1; if (left <= 0) { left = 0; return end(); }
+    $("#tl").textContent = Math.ceil(left); $("#tb").style.transform = `scaleX(${left / 60})`; $("#clk").classList.toggle("low", left <= 10);
+  }, 100));
+  function end() {
+    clearTimers(); const best = score > S.stats.bestSpeed; S.stats.bestSpeed = Math.max(S.stats.bestSpeed, score);
+    if (score >= 15) unlock("speed15"); if (score >= 25) unlock("speed25");
+    addXP(score * 4);
+    result(String(score), best && score ? "Nový osobní rekord." : "Čas vypršel.", `${wrong ? wrong + " " + plural(wrong, "chyba", "chyby", "chyb") + ". " : ""}Rekord ${S.stats.bestSpeed}. Získáno ${score * 4} XP.`, () => speed(ids, back), back);
+  }
+}
+
+/* ---------- ORDER ---------- */
+function order(ids, back = home) {
+  let list = ORDERS.filter(o => ids.includes(o[1])); if (!list.length) list = ORDERS;
+  const [name, ch, steps] = pick(list, 1)[0]; const sh = shuffle(steps.map((s, i) => ({ s, i })));
+  let built = [], tries = 0;
+  function render() {
+    app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Ukončit</button><span class="small mute">Okruh ${CHMAP[ch].n}: ${esc(CHMAP[ch].title)}</span></div><div class="sheet"><h3>Seřaď: ${esc(name)}</h3><p class="small mute">Klepej na kroky ve správném pořadí. Klepnutím na zařazený krok ho vrátíš zpátky.</p>
+    <ol class="built">${built.map((b, n) => `<li data-n="${n}">${esc(b.s)}</li>`).join("") || '<li class="ph">Sem se řadí kroky</li>'}</ol>
+    <div class="pool">${sh.filter(x => !built.includes(x)).map(x => `<button data-i="${x.i}">${esc(x.s)}</button>`).join("")}</div><div id="fb"></div></div></div>`;
+    $(".back").onclick = () => go(back);
+    app.querySelectorAll(".pool button").forEach(b => b.onclick = () => { built.push(sh.find(x => x.i == b.dataset.i)); if (built.length === steps.length) check(); else render(); });
+    app.querySelectorAll(".built li[data-n]").forEach(li => li.onclick = () => { built.splice(+li.dataset.n, 1); render(); });
+  }
+  function check() {
+    render(); tries++;
+    const ok = built.every((b, n) => b.i === n);
+    app.querySelectorAll(".built li").forEach((li, n) => { li.classList.add(built[n].i === n ? "good" : "bad"); li.onclick = null; });
+    if (ok) { const x = tries === 1 ? 20 : 8; S.stats.orders++; if (tries === 1) unlock("order"); addXP(x); $("#fb").innerHTML = `<div class="fb"><p>Správně, ${x} XP.</p><span style="display:flex;gap:8px"><button class="btn-ghost" id="bk">Zpět</button><button class="btn-main" id="ag">Další postup</button></span></div>`; $("#ag").onclick = () => go(() => order(ids, back)); $("#bk").onclick = () => go(back); }
+    else { $("#fb").innerHTML = `<div class="fb"><p>Zelené kroky jsou na správném místě.</p><button class="btn-main" id="rt">Zkusit znovu</button></div>`; $("#rt").onclick = () => { built = []; render(); }; }
+  }
+  render();
+}
+
+/* ---------- BOSS ---------- */
+function boss(ids, back = home) {
+  const drawn = pick(ids.length >= 2 ? ids : CH.map(c => c.id), 2);
+  app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Zpět</button></div><h1 style="font-size:clamp(40px,7vw,64px)">Losování</h1>
+  <p class="mute" style="margin-top:10px;max-width:52ch">Komise ti položí 12 otázek z vylosovaných okruhů. Každá správná odpověď ji přesvědčí o kus víc. Máš tři pokusy na chybu.</p>
+  <div class="draw"><div class="tk" id="d1"></div><div class="tk" id="d2"></div></div><button class="btn-main" id="go" disabled>Předstoupit před komisi</button></div>`;
+  $(".back").onclick = () => go(back);
+  let n = 0; const fake = c => ticket(c);
+  const sp = setInterval(() => {
+    const a = pick(CH, 2); $("#d1").innerHTML = fake(a[0]); $("#d2").innerHTML = fake(a[1]);
+    if (++n > 12) { clearInterval(sp); [["#d1", drawn[0]], ["#d2", drawn[1]]].forEach(([s, id], k) => { const el = $(s); el.innerHTML = ticket(CHMAP[id]); el.style.animationDelay = k * 140 + "ms"; el.classList.add("spin"); }); $("#go").disabled = false; $("#go").focus({ preventScroll: true }); }
+  }, 85);
+  timers.push(sp);
+  $("#go").onclick = () => fight();
+  function fight() {
+    const qs = weighted(poolFor(drawn), 12); let i = 0, conv = 0, lives = 3; const step = 100 / 9;
+    const seats = [["Předseda", "Chce vidět přehled"], ["Oponent", "Hledá díry"], ["Člen komise", "Doptává se"]];
+    function show() {
+      if (conv >= 99.9) return win(); if (lives <= 0 || i >= qs.length) return lose();
+      const q = qs[i];
+      app.innerHTML = `<div class="play"><div class="ptop"><button class="back">← Odejít</button><span class="tries" title="Pokusy na chybu">${[0, 1, 2].map(k => `<i class="${k >= lives ? "lost" : ""}"></i>`).join("")}</span><span class="small mute num">Otázka ${i + 1} / ${qs.length}</span></div>
+      <div class="board">${seats.map((s, k) => `<div class="seat ${conv >= (k + 1) * 33.3 - .5 ? "won" : ""}"><b>${s[0]}</b><span>${conv >= (k + 1) * 33.3 - .5 ? "Přesvědčen" : s[1]}</span></div>`).join("")}</div>
+      <div class="convince"><span class="small mute">Komise přesvědčena</span><div class="track"><i id="cv" style="width:${conv}%"></i></div><b class="num" id="cvn">${Math.round(conv)} %</b></div>
+      <div class="sheet">${qHTML(q, optsFor(q))}</div></div>`;
+      $(".back").onclick = () => go(back);
+      const bs = [...app.querySelectorAll(".opt")]; let done = false;
+      const next = () => { i++; show(); };
+      const ans = b => {
+        if (done) return; done = true; const r = mark(bs, b, q);
+        if (r) { conv = Math.min(100, conv + step); S.done[q.id] = 1; $("#cv").style.width = conv + "%"; $("#cvn").textContent = Math.round(conv) + " %"; app.querySelectorAll(".seat").forEach((s, k) => { if (conv >= (k + 1) * 33.3 - .5) { s.classList.add("won"); s.querySelector("span").textContent = "Přesvědčen"; } }); }
+        else { lives--; app.querySelectorAll(".tries i").forEach((t, k) => t.classList.toggle("lost", k >= lives)); document.body.classList.add("ouch"); setTimeout(() => document.body.classList.remove("ouch"), 360); }
+        save();
+        $("#fb").innerHTML = fbHTML(q, b, r, "Komise přikyvuje.", `<button class="btn-main" id="nx">Pokračovat<kbd>Enter</kbd></button>`);
+        $("#nx").onclick = next; $("#nx").focus({ preventScroll: true });
+      };
+      bs.forEach(b => b.onclick = () => ans(b));
+      document.onkeydown = e => { const n = +e.key; if (n >= 1 && n <= bs.length) ans(bs[n - 1]); };
+    }
+    function win() { document.onkeydown = null; S.stats.bosses++; unlock("boss"); if (S.stats.bosses >= 3) unlock("boss3"); addXP(100 + lives * 20); result("Prospěla", "Komise je přesvědčená.", `Zbyl${lives === 1 ? "" : "y"} ti ${lives} ${plural(lives, "pokus", "pokusy", "pokusů")}. Získáno ${100 + lives * 20} XP.`, () => boss(ids, back), back); }
+    function lose() { document.onkeydown = null; addXP(15); result("Opravný termín", "Tentokrát to komisi nepřesvědčilo.", `Komise přesvědčena na ${Math.round(conv)} %. Projdi si kartičky k okruhům ${CHMAP[drawn[0]].n} a ${CHMAP[drawn[1]].n} a zkus to znovu. Za snahu 15 XP.`, () => boss(ids, back), back); }
+    show();
+  }
+}
+const MODES = { quiz, cards, match, speed, order, boss };
+/* ---------- SHARE / SYNC ---------- */
+function renderLB() {
+  const el = $("#lb"); if (!el) return;
+  const L = lvl(S.xp);
+  const txt = `Státnice SWI: mám level ${L.n} (${L.title}), ${S.xp} XP a ${totalMastery()} % zvládnuto. Bleskovka rekord: ${S.stats.bestSpeed}, razítka ${Object.keys(S.ach).length}/${ACH.length}. Překonáš mě? ` + (location.href.split("#")[0]);
+  el.innerHTML = `<blockquote id="sq2">${esc(txt)}</blockquote><button class="btn-main" id="cp">Zkopírovat výzvu</button>
+  <p class="small mute" style="margin-top:12px">Pošli kamarádům odkaz na tuhle stránku a jejich výsledek si porovnejte. Každý má svůj vlastní postup${DB ? ", tvůj se ukládá k tvému účtu." : " uložený v prohlížeči."}</p>`;
+  $("#cp").onclick = async () => { try { await navigator.clipboard.writeText(txt); toast("Výzva zkopírována"); } catch (e) { const r = document.createRange(); r.selectNodeContents($("#sq2")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); toast("Text je označený, zkopíruj ho přes Ctrl+C"); } };
+}
+(async () => {
+  renderHUD(); home();
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    DB = db; UID = id;
+    try {
+      const d = await DB.doc("data/users/" + UID + "/progress").get();
+      const remote = d.exists ? d.data() : null;
+      if (remote && remote.s && remote.xp > S.xp) { S = Object.assign(structuredClone(DEF), JSON.parse(remote.s)); S.stats = Object.assign(structuredClone(DEF.stats), S.stats); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} renderHUD(); if ($(".hero")) home(); }
+    } catch (e) {}
+    renderLB();
+  } catch (e) {}
+})();
+
+</script>
+</body>
+</html>
